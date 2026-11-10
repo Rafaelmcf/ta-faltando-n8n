@@ -1,0 +1,47 @@
+# Frases de teste e gabarito
+
+Cada frase foi enviada numa conversa nova, direto na URL do chat (POST com `sendMessage`). Depois conferi o carrinho guardado pelo n8n contra o gabarito. Nos casos sem carrinho, conferi se a resposta trazia o aviso certo.
+
+Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
+
+| # | Frase do cliente | Carrinho certo | 1ª rodada | 2ª rodada |
+|---|---|---|---|---|
+| 1 | 2 coca e um miojo de tomate | 2 Coca-Cola lata, 1 lámen tomate | ok | ok |
+| 2 | me vê um bombril e um detergente | 1 esponja de aço, 1 detergente | ok | ok |
+| 3 | quero 3 guaraná | 3 Guaraná lata | ok | ok |
+| 4 | uma coca grande | 1 Coca-Cola 2 L | ok | ok |
+| 5 | salgadinho queijo nacho | 1 Doritos | ok | ok |
+| 6 | pasta de dente e papel higiênico | 1 creme dental, 1 papel higiênico | ok | ok |
+| 7 | uma dúzia de ovos | 1 bandeja de 12 | **errou: 12 bandejas** | ok |
+| 8 | danone | 1 iogurte | ok | ok |
+| 9 | toddy | 1 achocolatado | ok | ok |
+| 10 | nescau | vazio, oferece achocolatado de outra marca | ok | ok |
+| 11 | 1kg de arroz e um feijão | 1 arroz, 1 feijão | ok | ok |
+| 12 | pão de forma e manteiga | 1 pão de forma, 1 manteiga | ok | ok |
+| 13 | duas breja | vazio, pergunta se tem 18 anos | ok | ok |
+| 14 | ruffles e amendoim japonês | 1 Ruffles, 1 amendoim | ok | ok |
+| 15 | nutella | 1 Nutella | ok | ok |
+| 16 | um pote de sorvete napolitano | 1 sorvete | ok | ok |
+| 17 | pipoca de micro-ondas, 2 | 2 pipocas | ok | ok |
+| 18 | 6 leite de caixinha | 6 leites | ok | ok |
+| 19 | azeite e sal | 1 azeite, 1 sal | ok | ok |
+| 20 | carne moída e um molho de tomate | 1 carne moída, 1 molho | ok | ok |
+| 21 | oi, quero 2 guaraná e uma ruffles | 2 Guaraná, 1 Ruffles | ok | ok |
+| 22 | suco de laranja | 1 suco | ok | ok |
+| 23 | uma água | 1 água | ok | ok |
+| 24 | bolacha recheada | 1 biscoito recheado | ok | ok |
+| 25 | picanha | vazio, "não temos" | ok | ok |
+| 26 | 2 coca / tira uma coca | 1 Coca-Cola lata | ok | ok |
+| 27 | coca / muda pra 4 | 4 Coca-Cola lata | ok | ok |
+| 28 | uma coca zero | vazio, oferece a comum avisando do açúcar | **errou: pôs a comum calado** | ok |
+| 29 | quero manjericão | vazio, oferece orégano e explica | (sem trocas aprovadas) | ok |
+| 30 | tempero verde | vazio, oferece orégano e explica | (sem trocas aprovadas) | ok |
+| 31 | fermento | vazio, avisa que não tem troca segura | (sem trocas aprovadas) | ok |
+| 32 | creme de leite fresco | vazio, oferece creme de leite de caixinha | (sem trocas aprovadas) | ok |
+| 33 | parmesão em peça | vazio, oferece parmesão ralado | (sem trocas aprovadas) | ok |
+| 34 | vinho tinto seco | vazio, oferece o suave e explica | não testado | **errou: pôs o suave direto** (corrigido e testado de novo: ok) |
+| 35 | nescau / pode ser | 1 achocolatado | não testado | ok |
+
+**2ª rodada:** 34 de 35 certas. Tempo medido do lado do cliente, em 38 mensagens: média 6,5 s, mediana 5,3 s, 5% mais lentos acima de 14,6 s, máximo 15,0 s.
+
+**Receita por link:** `https://www.tudogostoso.com.br/receita/92066-macarrao-a-bolonhesa.html` teve 11 ingredientes lidos do JSON-LD. Foram para o carrinho espaguete, carne moída e molho de tomate. Sal, alho, cebola e orégano apareceram como "talvez você já tenha em casa". Salsicha, caldo de carne, mussarela e pimentão vieram em "não temos". Com um site que não abre, o sistema montou o carrinho pelo nome do prato no link e avisou.

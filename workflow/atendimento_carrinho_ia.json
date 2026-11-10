@@ -1,0 +1,1165 @@
+{
+  "name": "Mercadinho: atendimento com carrinho (IA)",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "hostedChat",
+        "initialMessages": "Oi! Aqui é o Tá Faltando? 🛒\nMe fala o que você precisa, do seu jeito.",
+        "options": {
+          "title": "Tá Faltando?",
+          "subtitle": "Mercadinho de última hora (demo)",
+          "inputPlaceholder": "Ex.: 2 coca e um miojo de tomate"
+        }
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000001",
+      "name": "Mensagem no chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "mercadinho-chat-carrinho"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Usa o catálogo guardado por 15 min para não gastar chamada do Airtable a cada mensagem\nconst sd = $getWorkflowStaticData('global');\nconst cache_ok = Array.isArray(sd.catalogo) && sd.catalogo.length > 0 && Array.isArray(sd.trocas) && sd.trocas.length > 0 && (Date.now() - (sd.catalogoTs || 0)) < 15 * 60 * 1000;\nreturn [{ json: { cache_ok, t0: Date.now() } }];"
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000002",
+      "name": "Ler cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "273c2806-7865-4eb8-906c-90e14ae5e162",
+              "leftValue": "={{ $json.cache_ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000003",
+      "name": "Catálogo em cache?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appmaweKgwIxJAZgj",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblF13MYOfDyIraz7",
+          "mode": "id"
+        },
+        "filterByFormula": "{Ativo}",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000004",
+      "name": "Buscar catálogo",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        380
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "vYJ5bxMk3hhWf5MA",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Guarda o catálogo (só produtos ativos) e as trocas aprovadas para as próximas mensagens\nconst sd = $getWorkflowStaticData('global');\nsd.catalogo = $('Buscar catálogo').all().map(i => i.json.fields ?? i.json).filter(p => p.Produto && p.SKU);\nconst skuPorId = Object.fromEntries(sd.catalogo.map(p => [p.id, p.SKU]));\nsd.trocas = $('Buscar trocas').all().map(i => i.json.fields ?? i.json).filter(t => t.Ingrediente).map(t => ({\n  ingrediente: t.Ingrediente,\n  skus: (t.Troca || []).map(id => skuPorId[id]).filter(Boolean),\n  muda: t['O que muda no prato'] || '',\n  risco: String(t.Risco || 'Leve')\n}));\nsd.catalogoTs = Date.now();\nreturn [{ json: { produtos: sd.catalogo.length, trocas: sd.trocas.length } }];"
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000005",
+      "name": "Salvar catálogo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decide o que fazer com a mensagem: regra fixa (menu, categoria, carrinho, fechar) ou IA\nconst sd = $getWorkflowStaticData('global');\nconst chat = $('Mensagem no chat').first().json;\nconst sessao = chat.sessionId || 'teste';\nconst msgRaw = (chat.chatInput || '').trim();\nconst norm = s => (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();\nconst msg = norm(msgRaw).replace(/[!?.]+$/, '');\nconst reais = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');\nconst ORDEM = ['Bebidas', 'Mercearia', 'Frios e laticínios', 'Hortifruti', 'Carnes', 'Congelados', 'Snacks', 'Doces', 'Limpeza', 'Higiene e farmácia'];\n\n// Memória da conversa (carrinho de cada cliente). Apaga conversas paradas há mais de 24 h.\nsd.sessoes = sd.sessoes || {};\nfor (const [k, v] of Object.entries(sd.sessoes)) if (Date.now() - v.ts > 24 * 3600 * 1000) delete sd.sessoes[k];\nconst s = sd.sessoes[sessao] = sd.sessoes[sessao] || { carrinho: {}, ultima: '', aguardando18: null, maior18: false, msgs: 0, inicio: Date.now() };\ns.ts = Date.now();\ns.msgs += 1;\n\nconst produtos = sd.catalogo || [];\nconst porSku = Object.fromEntries(produtos.map(p => [p.SKU, p]));\nconst cats = ORDEM.filter(c => produtos.some(p => p.Categoria === c));\nprodutos.forEach(p => { if (p.Categoria && !cats.includes(p.Categoria)) cats.push(p.Categoria); });\n\nconst linha = p => `- ${p.Produto} (${p.Marca}, ${p.Unidade}): ${reais(p['Preço'])}` + ((p.Estoque ?? 1) <= 0 ? ' (acabou)' : '');\nconst verCarrinho = () => {\n  const itens = Object.entries(s.carrinho).filter(([sku]) => porSku[sku]);\n  if (!itens.length) return 'Seu carrinho está vazio.';\n  let total = 0;\n  const linhas = itens.map(([sku, q]) => { const p = porSku[sku]; const sub = q * Number(p['Preço']); total += sub; return `- ${q}x ${p.Produto} ${reais(sub)}`; });\n  return '🛒 *Seu carrinho*\\n\\n' + linhas.join('\\n') + `\\n\\n*Total: ${reais(total)}*`;\n};\nconst menu = () => 'Oi! Aqui é o Tá Faltando?, o mercadinho que entrega rapidinho.\\n\\n' +\n  'Me fala o que você precisa do seu jeito (ex.: \"2 coca e um miojo de tomate\") ou escolha uma categoria pelo número:\\n\\n' +\n  cats.map((c, i) => `${i + 1}. ${c}`).join('\\n') +\n  (Object.keys(s.carrinho).length ? '\\n\\n' + verCarrinho() : '');\n\nconst saudacoes = ['oi', 'oie', 'ola', 'opa', 'eai', 'e ai', 'bom dia', 'boa tarde', 'boa noite', 'menu', 'cardapio', 'inicio', 'comecar'];\n// Só é saudação se não sobrar pedido depois do \"oi\" (ex.: \"oi, quero 2 coca\" vai para a IA)\nconst resto = saudacoes.reduce((m, x) => m.replace(new RegExp('^' + x + '(?![a-z])[\\\\s!,.?]*'), ''), msg).replace(/^(tudo bem|td bem|blz|beleza)[\\s!,.?]*/, '').trim();\nconst ehSaudacao = !msg || !resto;\nconst pediuCarrinho = ['carrinho', 'ver carrinho', 'meu carrinho', 'meu pedido', 'ver pedido'].includes(msg);\nconst pediuLimpar = ['limpar', 'limpar carrinho', 'esvaziar', 'esvaziar carrinho', 'cancelar', 'cancelar pedido', 'zerar'].includes(msg);\nconst pediuFechar = ['fechar', 'fechar pedido', 'finalizar', 'finalizar pedido', 'pagar', 'so isso', 'e so isso', 'pode fechar'].includes(msg);\n\nlet saida = null;\n// Resposta à pergunta de +18\nif (s.aguardando18) {\n  if (/^(sim|s|tenho|confirmo|sou maior)/.test(msg)) {\n    for (const it of s.aguardando18) s.carrinho[it.sku] = (s.carrinho[it.sku] || 0) + it.qtd;\n    s.maior18 = true;\n    s.aguardando18 = null;\n    saida = 'Valeu! Coloquei no carrinho.\\n\\n' + verCarrinho() + '\\n\\nQuer mais alguma coisa? Para fechar, digite \"fechar\".';\n  } else if (/^(nao|n)\\b/.test(msg)) {\n    s.aguardando18 = null;\n    saida = 'Sem problema, deixei de fora.\\n\\n' + verCarrinho();\n  } else {\n    s.aguardando18 = null;\n  }\n}\nif (!saida) {\n  if (ehSaudacao) saida = menu();\n  else if (pediuCarrinho) saida = verCarrinho() + '\\n\\nPara fechar, digite \"fechar\". Para tirar algo, é só falar (ex.: \"tira o miojo\").';\n  else if (pediuLimpar) { s.carrinho = {}; saida = 'Pronto, esvaziei o carrinho. O que você precisa?'; }\n  else if (pediuFechar) saida = '__FECHAR__';\n  else {\n    let cat = null;\n    if (/^\\d{1,2}$/.test(msg)) cat = cats[Number(msg) - 1] || null;\n    if (!cat) cat = cats.find(c => norm(c) === msg) || null;\n    if (cat) {\n      const lista = produtos.filter(p => p.Categoria === cat).sort((a, b) => a.Produto.localeCompare(b.Produto));\n      saida = `*${cat}*\\n\\n` + lista.map(linha).join('\\n') + '\\n\\nÉ só me falar o que você quer e quantos. Para voltar às categorias, digite \"menu\".';\n    }\n  }\n}\n\nconst totalCarrinho = () => Object.entries(s.carrinho).reduce((t, [sku, q]) => t + (porSku[sku] ? q * Number(porSku[sku]['Preço']) : 0), 0);\nif (saida === '__FECHAR__') {\n  if (!Object.keys(s.carrinho).length) {\n    saida = 'Seu carrinho ainda está vazio. Me fala o que você precisa!';\n  } else {\n    const valor = Math.round(totalCarrinho() * 100) / 100;\n    const resumo = verCarrinho();\n    // Já existe um Pix para este mesmo valor: manda o mesmo código, não cria outra cobrança\n    if (s.pedido && s.pedido.status === 'aguardando' && Math.abs(s.pedido.valor - valor) < 0.005) {\n      saida = resumo + '\\n\\nSeu Pix já está gerado. Copie o código e pague no app do banco:\\n\\n' + s.pedido.payload + '\\n\\nDepois de pagar, me manda \"paguei\" que eu confiro.';\n    } else {\n      s.ultima = resumo;\n      return [{ json: { usar_ia: false, acao: 'pagar', valor, output: resumo, sessao } }];\n    }\n  }\n}\n// Cliente avisou que pagou: confere no Asaas\nif (!saida && s.pedido && s.pedido.status === 'aguardando' && /^(paguei|ja paguei|pago|pix pago|ta pago|feito|pronto|ja fiz o pix|fiz o pix)\\b/.test(msg)) {\n  return [{ json: { usar_ia: false, acao: 'conferir', paymentId: s.pedido.paymentId, output: '', sessao } }];\n}\n\nif (saida) {\n  s.ultima = saida;\n  return [{ json: { usar_ia: false, acao: 'responder', output: saida, sessao } }];\n}\n\n// Link de receita: baixa a página e monta o carrinho pelos ingredientes\nconst url = (msgRaw.match(/https?:\\/\\/\\S+/i) || [])[0];\nif (url) return [{ json: { usar_ia: true, acao: 'receita', url, sessao, inicio: Date.now() } }];\n\n// Vai para a IA: manda o catálogo, o carrinho, a última pergunta do atendente e a mensagem\nconst trocas = sd.trocas || [];\nconst trocasTexto = trocas.length ? trocas.map((t, i) => `${i + 1}. ${t.ingrediente} -> ${t.risco.startsWith('Alto') ? 'SEM TROCA SEGURA' : t.skus.join(', ')}`).join('\\n') : 'nenhuma';\nconst catTexto = produtos.map(p => `${p.SKU} | ${p.Produto} | ${p.Marca} | ${p.Unidade} | ${p['Como o povo chama'] || ''} | estoque ${p.Estoque ?? 0}`).join('\\n');\nconst carTexto = Object.entries(s.carrinho).map(([sku, q]) => `${sku} x ${q}`).join('\\n') || 'vazio';\nconst prompt = `Você trabalha no Tá Faltando?, um mercadinho de bairro que entrega pelo WhatsApp.\nSua única tarefa é ENTENDER a mensagem do cliente e devolver um JSON. Você não calcula preço nem total.\n\nCATÁLOGO (sku | produto | marca | unidade | como o povo chama | estoque)\n${catTexto}\n\nCARRINHO ATUAL (sku x quantidade)\n${carTexto}\n\nSUA ÚLTIMA MENSAGEM PARA O CLIENTE\n${(s.ultima || 'nenhuma').slice(0, 800)}\n\nTROCAS APROVADAS (ingrediente que não temos -> sku que pode substituir)\n${trocasTexto}\n\nMENSAGEM DO CLIENTE\n${msgRaw}\n\nREGRAS\n- Entenda apelidos, marcas e o jeito do dia a dia (coca = Coca-Cola, miojo = macarrão instantâneo, bombril = palha de aço, \"salgadinho queijo nacho\" = Doritos).\n- Quantidade por extenso vale (um, dois, três, meia dúzia = 6, uma dúzia = 12). Sem quantidade = 1.\n- Se o cliente pedir uma versão que não existe no catálogo (zero, diet, light, sem lactose), NUNCA coloque a versão comum no carrinho: vai em \"nao_temos\". Em \"pedido\" copie o que o cliente escreveu.\n- A quantidade é sempre em UNIDADES DE VENDA do catálogo (coluna unidade). Se a unidade já tem várias peças (ex.: \"bandeja 12 un\"), \"uma dúzia de ovos\" = 1 bandeja, não 12.\n- Se o cliente estiver respondendo uma pergunta sua (ex.: \"a de lata\", \"a primeira\", \"pode ser\"), use a sua última mensagem para entender.\n- Use SÓ skus que existem no catálogo acima. Nunca invente produto nem sku.\n- APELIDO EXATO MANDA: se o que o cliente falou é igual a um dos apelidos de \"como o povo chama\" de um produto, use ESSE produto. Ex.: \"coca\" está nos apelidos da Coca-Cola lata, então \"2 coca\" = 2 Coca-Cola lata. Só use a de 2 litros se o cliente falar \"2 litros\", \"grande\", \"garrafa\" ou \"cocão\".\n- Se o pedido servir para mais de um produto e nenhum apelido bater exato, coloque em \"duvidas\" com os skus possíveis, em vez de adivinhar.\n- Se não temos o produto, coloque em \"nao_temos\". Se houver algo parecido no catálogo, indique em \"troca_sku\" (ex.: nescau -> outro achocolatado), mas NÃO coloque a troca no carrinho.\n- Se o que o cliente pediu está na lista TROCAS APROVADAS e não existe no catálogo, coloque em \"nao_temos\" com \"troca_n\" = número da troca na lista e \"troca_sku\" = o sku dela (null se for SEM TROCA SEGURA). Ex.: \"manjericão\" -> troca_n do manjericão. NUNCA coloque a troca direto em \"operacoes\": o cliente precisa aceitar antes (ex.: pediu \"vinho tinto seco\" e só temos suave = nao_temos com a troca, não adicionar).\n- Fora da lista de trocas, só indique troca_sku se for o MESMO tipo de produto de outra marca (achocolatado por achocolatado). Ingrediente diferente fora da lista = troca_sku null.\n- \"tira\", \"remove\", \"não quero mais\" = remover (quantidade null = tirar tudo daquele item). \"muda pra 3\", \"na verdade são 3\" = definir.\n- Se o cliente quiser fechar, finalizar ou pagar, \"fechar\": true.\n- Se a mensagem não for pedido (dúvida, conversa), escreva em \"resposta\" uma frase curta e simpática. Não prometa nada fora do catálogo.\n\nResponda SÓ com um JSON válido, sem nada antes ou depois, neste formato:\n{\"operacoes\":[{\"tipo\":\"adicionar\",\"sku\":\"BEB-01\",\"quantidade\":2,\"pedido\":\"2 coca\"}],\"duvidas\":[{\"pedido\":\"...\",\"skus\":[\"...\",\"...\"]}],\"nao_temos\":[{\"pedido\":\"...\",\"troca_sku\":null,\"troca_n\":null}],\"fechar\":false,\"resposta\":\"\"}\n\"tipo\" é \"adicionar\", \"remover\" ou \"definir\".`;\n\nreturn [{ json: { usar_ia: true, acao: 'responder', prompt, sessao, inicio: Date.now() } }];\n"
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000006",
+      "name": "Entender mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "9c9abfa0-d8be-41c9-8dbe-b0f8c14ddf30",
+              "leftValue": "={{ $json.usar_ia }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000007",
+      "name": "Precisa de IA?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}"
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000008",
+      "name": "Entender pedido (IA)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        1540,
+        100
+      ],
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000009",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        320
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "m5cnZcSxOtelPOkC",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lê o JSON da IA e aplica no carrinho. Preço, total e estoque são regra fixa, nunca a IA.\nconst sd = $getWorkflowStaticData('global');\nconst { sessao, inicio } = $('Entender mensagem').first().json;\nconst s = sd.sessoes[sessao];\nconst produtos = sd.catalogo || [];\nconst porSku = Object.fromEntries(produtos.map(p => [p.SKU, p]));\nconst reais = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');\nconst nome = p => `${p.Produto}${p.Marca && !p.Produto.includes(p.Marca) ? ' ' + p.Marca : ''} (${p.Unidade})`;\n\nconst bruto = String($input.first().json.text || '');\nlet ia = null;\ntry { ia = JSON.parse(bruto.replace(/```json|```/g, '').trim()); } catch (e) { ia = null; }\n\nconst verCarrinho = () => {\n  const itens = Object.entries(s.carrinho).filter(([sku]) => porSku[sku]);\n  if (!itens.length) return 'Seu carrinho está vazio.';\n  let total = 0;\n  const linhas = itens.map(([sku, q]) => { const p = porSku[sku]; const sub = q * Number(p['Preço']); total += sub; return `- ${q}x ${p.Produto} ${reais(sub)}`; });\n  return '🛒 *Seu carrinho*\\n\\n' + linhas.join('\\n') + `\\n\\n*Total: ${reais(total)}*`;\n};\n\nlet output;\nif (!ia) {\n  output = 'Opa, não consegui entender agora. Pode falar de outro jeito? (ex.: \"2 coca e 1 miojo\")';\n} else {\n  const add = [], tirou = [], avisos = [], pede18 = [];\n  for (const op of (Array.isArray(ia.operacoes) ? ia.operacoes : [])) {\n    const p = porSku[op.sku];\n    if (!p) continue; // sku inventado: ignora\n    // Trava: pediu versão zero/diet/light/sem lactose e o produto não é essa versão. Nunca troca calado (pode ser restrição de saúde).\n    const versao = /\\b(zero|diet|light|sem a[cç][uú]car|sem lactose)\\b/i;\n    // Trava 2: o cliente pediu um item da tabela de trocas (ex.: \"vinho seco\") e a IA colocou a troca direto. Volta para pergunta.\n    const sem = x => String(x || '').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');\n    const ti2 = (sd.trocas || []).findIndex(t => t.skus.includes(op.sku) && sem(t.ingrediente).replace(/\\(.*?\\)/g, '').split(/[^a-z]+/).filter(x => x.length > 3 && !['para', 'outra', 'outro', 'marca'].includes(x) && !sem(p.Produto + ' ' + p.Marca).includes(x)).some(x => sem(op.pedido).includes(x)));\n    if (ti2 >= 0) {\n      ia.nao_temos = (Array.isArray(ia.nao_temos) ? ia.nao_temos : []).concat({ pedido: op.pedido, troca_sku: op.sku, troca_n: ti2 + 1 });\n      continue;\n    }\n    if (versao.test(op.pedido || '') && !versao.test(p.Produto)) {\n      const ti = (sd.trocas || []).findIndex(t => t.skus.includes(op.sku) && versao.test(t.ingrediente));\n      ia.nao_temos = (Array.isArray(ia.nao_temos) ? ia.nao_temos : []).concat({ pedido: op.pedido, troca_sku: op.sku, troca_n: ti >= 0 ? ti + 1 : null });\n      continue;\n    }\n    const atual = s.carrinho[op.sku] || 0;\n    let q = Math.round(Number(op.quantidade));\n    if (op.tipo === 'remover') {\n      const novo = (!q || q >= atual) ? 0 : atual - q;\n      if (atual) { tirou.push(`${atual - novo}x ${nome(p)}`); if (novo) s.carrinho[op.sku] = novo; else delete s.carrinho[op.sku]; }\n      continue;\n    }\n    if (!q || q < 1) q = 1;\n    let alvo = op.tipo === 'definir' ? q : atual + q;\n    const estoque = Number(p.Estoque ?? 0);\n    if (estoque <= 0) { avisos.push(`${p.Produto} acabou por aqui, desculpa.`); continue; }\n    if (alvo > estoque) { avisos.push(`Só tenho ${estoque} de ${p.Produto}, coloquei ${estoque}.`); alvo = estoque; }\n    if (p['Maior de 18'] && !s.maior18) { pede18.push({ sku: op.sku, qtd: alvo - atual }); continue; }\n    s.carrinho[op.sku] = alvo;\n    add.push(`+ ${alvo - atual > 0 ? alvo - atual : alvo}x ${nome(p)}`);\n  }\n  const partes = [];\n  if (ia.receita) partes.push(`📖 *${ia.receita}*` + ((sd.ultimaReceita && /não abriu/.test(sd.ultimaReceita.fonte)) ? '\\nNão consegui abrir o site, montei pelo nome do prato.' : ''));\n  if (add.length) partes.push((ia.receita ? 'Já coloquei no carrinho os principais:\\n' : 'Coloquei no carrinho:\\n') + add.join('\\n'));\n  const casa = (Array.isArray(ia.em_casa) ? ia.em_casa : []).map(x => porSku[x.sku]).filter(p => p && !s.carrinho[p.SKU]);\n  if (casa.length) partes.push('Talvez você já tenha em casa (não coloquei):\\n' + casa.map(p => `- ${nome(p)}: ${reais(p['Preço'])}`).join('\\n') + '\\n\\nSe precisar, é só falar (ex.: \"coloca o sal\").');\n  if (tirou.length) partes.push('Tirei: ' + tirou.join(', ') + '.');\n  if (avisos.length) partes.push(avisos.join('\\n'));\n  for (const d of (Array.isArray(ia.duvidas) ? ia.duvidas : [])) {\n    const ops = (d.skus || []).map(x => porSku[x]).filter(Boolean);\n    if (ops.length) partes.push(`Fiquei na dúvida: \"${d.pedido}\" é qual?\\n` + ops.map(p => `- ${nome(p)}: ${reais(p['Preço'])}`).join('\\n'));\n  }\n  const semTroca = [];\n  for (const n of (Array.isArray(ia.nao_temos) ? ia.nao_temos : [])) {\n    // Troca de ingrediente: o texto do que muda vem da tabela Substituições (aprovada), nunca da IA\n    const tr = (sd.trocas || [])[Number(n.troca_n) - 1];\n    if (tr && tr.risco.startsWith('Alto')) {\n      partes.push(`Não temos \"${n.pedido}\" e não vou sugerir troca: ${tr.muda}`);\n      continue;\n    }\n    let t = porSku[n.troca_sku];\n    if (tr && (!t || !tr.skus.includes(t.SKU))) t = porSku[tr.skus[0]];\n    if (t && tr) partes.push(`Não temos \"${n.pedido}\". Dá para trocar por ${nome(t)} (${reais(t['Preço'])}).\\n\\nO que muda: ${tr.muda}\\n\\nQuer? É só falar \"pode ser\".`);\n    else partes.push(t ? `Não temos \"${n.pedido}\". Tenho ${nome(t)} por ${reais(t['Preço'])}. Quer? É só falar \"pode ser\".`\n                  : (semTroca.push(n.pedido), ''));\n    if (!partes[partes.length - 1]) partes.pop();\n  }\n  if (semTroca.length) partes.push(semTroca.length === 1 ? `Não temos \"${semTroca[0]}\", desculpa.` : 'Não temos, desculpa:\\n' + semTroca.map(x => '- ' + x).join('\\n'));\n  {\n  }\n  if (pede18.length) {\n    s.aguardando18 = pede18;\n    partes.push('Para bebida alcoólica preciso confirmar: você tem 18 anos ou mais? Responda \"sim\" ou \"não\".');\n  }\n  if (ia.resposta && !partes.length) partes.push(String(ia.resposta));\n  if (ia.fechar && Object.keys(s.carrinho).length) {\n    const valor = Math.round(Object.entries(s.carrinho).reduce((t, [sku, q]) => t + (porSku[sku] ? q * Number(porSku[sku]['Preço']) : 0), 0) * 100) / 100;\n    const resumo = (partes.length ? partes.join('\\n\\n') + '\\n\\n' : '') + verCarrinho();\n    s.ultima = resumo;\n    return [{ json: { acao: 'pagar', valor, output: resumo, sessao, tempo_ms: Date.now() - inicio } }];\n  } else if (Object.keys(s.carrinho).length && (add.length || tirou.length)) {\n    partes.push(verCarrinho() + '\\n\\nQuer mais alguma coisa? Para fechar, digite \"fechar\".');\n  }\n  output = partes.join('\\n\\n') || 'Não entendi bem. Me fala o produto e a quantidade (ex.: \"2 coca lata\").';\n}\ns.ultima = output;\nreturn [{ json: { acao: 'responder', output, sessao, tempo_ms: Date.now() - inicio } }];\n"
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000010",
+      "name": "Atualizar carrinho",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1860,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Menu, categoria, carrinho ou fechar: respondido por regra, sem gastar IA\nreturn [{ json: $json }];"
+      },
+      "id": "c2c0a002-0000-4000-8000-000000000011",
+      "name": "Resposta pronta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "7352698f-d250-47f4-9521-600dbb60625b",
+              "leftValue": "={{ $json.acao === 'pagar' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "eda74a28-4f5d-4a7c-addd-b225bf959543",
+      "name": "Vai pagar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api-sandbox.asaas.com/v3/customers?cpfCnpj=12345678909",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "ta-faltando-n8n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ae1b1995-82ed-49bb-8dfb-4c1a95615e04",
+      "name": "Buscar cliente Asaas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pizQaA25VSHShTK0",
+          "name": "Asaas Sandbox"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-sandbox.asaas.com/v3/payments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "ta-faltando-n8n"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer\": \"{{ $json.data[0].id }}\",\n  \"billingType\": \"PIX\",\n  \"value\": {{ $('Vai pagar?').item.json.valor }},\n  \"dueDate\": \"{{ $now.plus({days: 1}).toFormat('yyyy-MM-dd') }}\",\n  \"description\": \"Pedido Tá Faltando? (demo)\",\n  \"externalReference\": \"{{ $('Vai pagar?').item.json.sessao }}\"\n}"
+      },
+      "id": "c8dc675b-fb2e-4618-a1c8-347a06e49f52",
+      "name": "Criar cobrança Pix",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2540,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pizQaA25VSHShTK0",
+          "name": "Asaas Sandbox"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api-sandbox.asaas.com/v3/payments/{{ $json.id }}/pixQrCode",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "ta-faltando-n8n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e0019a65-1376-4c66-a77f-e5ad71abf1ce",
+      "name": "Pegar Pix copia e cola",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2760,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pizQaA25VSHShTK0",
+          "name": "Asaas Sandbox"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta a mensagem com o Pix e guarda a cobrança na conversa do cliente\nconst sd = $getWorkflowStaticData('global');\nconst pedido = $('Vai pagar?').first().json;\nconst s = sd.sessoes[pedido.sessao];\nconst pay = $('Criar cobrança Pix').first().json;\nconst qr = $input.first().json;\nconst reais = v => 'R$ ' + Number(v || 0).toFixed(2).replace('.', ',');\nlet output;\nif (!pay.id || !qr.payload) {\n  output = pedido.output + '\\n\\nNão consegui gerar o Pix agora. Tenta \"fechar\" de novo daqui a pouco?';\n} else {\n  s.pedido = { paymentId: pay.id, valor: Number(pay.value), payload: qr.payload, status: 'aguardando', criado: Date.now() };\n  s.ultima = 'Pix gerado, aguardando pagamento.';\n  output = pedido.output + `\\n\\n💸 *Pix de ${reais(pay.value)}*\\nCopie o código abaixo e pague no app do banco:\\n\\n` + qr.payload +\n    '\\n\\nDepois de pagar, me manda \"paguei\" que eu confiro.\\n\\n_(Demo: no Asaas Sandbox, abra a cobrança e clique em \"Confirmar pagamento\".)_';\n}\nreturn [{ json: { output } }];\n"
+      },
+      "id": "c5600537-a972-4c8f-b562-4b54bfadb5a4",
+      "name": "Mensagem do Pix",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "a10578ed-7e78-46a6-b19b-b1bd42fd9869",
+              "leftValue": "={{ $json.acao === 'conferir' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0e17ca4e-3103-4add-bb24-157d6e520e25",
+      "name": "Conferir pagamento?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api-sandbox.asaas.com/v3/payments/{{ $json.paymentId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "ta-faltando-n8n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac01735a-e602-4d91-a018-638d968ee636",
+      "name": "Consultar pagamento",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2540,
+        360
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "pizQaA25VSHShTK0",
+          "name": "Asaas Sandbox"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Confere o status do Pix no Asaas e responde o cliente\nconst sd = $getWorkflowStaticData('global');\nconst { sessao } = $('Conferir pagamento?').first().json;\nconst s = sd.sessoes[sessao];\nconst p = $input.first().json;\nconst pago = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'].includes(p.status);\nlet output, itens = [], pedidoBody = null;\nif (pago) {\n  const minutos = Math.max(1, Math.round((Date.now() - s.inicio) / 60000));\n  output = `✅ *Pagamento confirmado!* Seu pedido já está sendo separado e sai em instantes.\\n\\nDo \"oi\" até o pagamento foram ${s.msgs} mensagens em cerca de ${minutos} min.\\n\\nPrecisando de mais alguma coisa, é só chamar.`;\n  // Dados para gravar no Airtable (Pedidos e Itens do pedido)\n  const porSku = Object.fromEntries((sd.catalogo || []).map(x => [x.SKU, x]));\n  itens = Object.entries(s.carrinho).filter(([sku]) => porSku[sku] && porSku[sku].id).map(([sku, q]) => ({ recId: porSku[sku].id, qtd: q }));\n  pedidoBody = { typecast: true, records: [{ fields: {\n    'Status': 'Pago', 'Origem': 'Texto livre', 'Forma de pagamento': 'Pix',\n    'ID cobrança Asaas': s.pedido.paymentId, 'Mensagens até pagar': s.msgs, 'Pago em': new Date().toISOString()\n  } }] };\n  s.historico = (s.historico || []).concat([{ ...s.pedido, status: 'pago', itens: s.carrinho }]);\n  s.carrinho = {}; s.pedido = null; s.msgs = 0; s.inicio = Date.now();\n} else if (p.status) {\n  output = 'Ainda não caiu aqui (status: ' + p.status + '). Às vezes leva alguns segundos. Me manda \"paguei\" de novo daqui a pouquinho.';\n} else {\n  output = 'Não consegui conferir o pagamento agora. Tenta de novo em alguns segundos?';\n}\ns.ultima = output;\nreturn [{ json: { output, pago, itens, pedidoBody } }];\n"
+      },
+      "id": "a65cb698-af71-4373-813a-33218662cfcd",
+      "name": "Status do pagamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2760,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Resposta normal (sem pagamento)\nreturn [{ json: { output: $json.output } }];"
+      },
+      "id": "2a60e1b8-9fdc-44b2-bfec-b04422952ecf",
+      "name": "Responder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2540,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "4950101b-3e5f-4598-a247-43a679c96dcb",
+              "leftValue": "={{ $json.pago === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7c73b4de-8384-44b8-ab9b-d06633a5059a",
+      "name": "Foi pago?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2980,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appmaweKgwIxJAZgj/tblGTDrDqk7aVtUL5",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.pedidoBody) }}",
+        "options": {}
+      },
+      "id": "31270964-d1f1-4f4c-8b5c-281fe11c12f2",
+      "name": "Gravar pedido (Airtable)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3200,
+        260
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "vYJ5bxMk3hhWf5MA",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Liga cada item ao pedido que acabou de ser criado no Airtable\nconst pedidoId = ($json.records && $json.records[0] && $json.records[0].id) || null;\nconst itens = $('Status do pagamento').first().json.itens || [];\nconst records = pedidoId ? itens.slice(0, 10).map(i => ({ fields: { 'Pedido': [pedidoId], 'Produto': [i.recId], 'Qtd': i.qtd, 'Grupo': 'Pedido direto' } })) : [];\nreturn [{ json: { tem: records.length > 0, body: { typecast: true, records } } }];\n"
+      },
+      "id": "168a5ea3-dae5-4789-a786-96331ba2e5dc",
+      "name": "Montar itens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3420,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appmaweKgwIxJAZgj/tblcNCKqnA5IRUIWU",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "8cfd9552-18ec-4b21-9fc4-ebc334ec02e8",
+      "name": "Gravar itens (Airtable)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3640,
+        260
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "vYJ5bxMk3hhWf5MA",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Responde o cliente (o registro no Airtable não muda a resposta)\nreturn [{ json: { output: $('Status do pagamento').first().json.output } }];"
+      },
+      "id": "4cf981e7-15a4-40fb-92b2-10633700f4a0",
+      "name": "Resposta do pagamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3860,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Registra cada mensagem na tabela Eventos (base das métricas do README)\nconst chat = $('Mensagem no chat').first().json;\nconst ent = $('Entender mensagem').first().json;\nconst t0 = $('Ler cache').first().json.t0 || Date.now();\nconst out = $json.output || '';\nconst msg = (chat.chatInput || '').trim();\nlet usouIA = false;\ntry { usouIA = $('Entender pedido (IA)').isExecuted; } catch (e) {}\nlet intencao = 'Atalho (menu/categoria/carrinho)';\nif (usouIA) intencao = 'Pedido em texto livre (IA)';\nif (ent.acao === 'pagar' || ($('Vai pagar?').isExecuted && $('Vai pagar?').first().json.acao === 'pagar')) intencao = 'Fechar pedido (Pix)';\nif (ent.acao === 'conferir') intencao = 'Conferir pagamento';\nif (ent.acao === 'receita') intencao = 'Receita por link';\nlet erro = '';\nif (usouIA) {\n  const bruto = String($('Entender pedido (IA)').first().json.text || '');\n  if (!/\\{[\\s\\S]*\\}/.test(bruto)) erro = 'IA não devolveu JSON';\n}\nconst tempo = Date.now() - t0;\nconst fields = {\n  fldpSzBiDnzjI8xGZ: String(chat.sessionId || 'teste').slice(0, 40),\n  fldRlW9T9AgGhtPTj: /https?:\\/\\//i.test(msg) ? 'Link' : 'Texto',\n  fldzRk6hjB8FrVsnK: intencao,\n  fldUApSB1pmsFlQm7: tempo,\n  fldrtUzhHBhfNdcH8: usouIA,\n  fld7d1EFknnaGCFXm: tempo > 10000,\n  fldldTZSvB5YSc2iQ: erro,\n  fld2qMcRTgtWF6Fcy: msg.slice(0, 2000),\n  fldCuZUvUPidvKJxz: out.slice(0, 5000)\n};\nreturn [{ json: { output: out, eventoBody: { typecast: true, records: [{ fields }] } } }];"
+      },
+      "name": "Preparar evento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        380
+      ],
+      "id": "b1e7e001-0000-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.airtable.com/v0/appmaweKgwIxJAZgj/tblveRUCaHf1Y4WtD",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "airtableTokenApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.eventoBody) }}",
+        "options": {}
+      },
+      "name": "Gravar evento (Airtable)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4300,
+        380
+      ],
+      "id": "b1e7e001-0000-4000-8000-000000000002",
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "vYJ5bxMk3hhWf5MA",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Devolve a resposta para o cliente (gravar o evento nunca muda a resposta)\nreturn [{ json: { output: $('Preparar evento').first().json.output } }];"
+      },
+      "name": "Saída",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4520,
+        380
+      ],
+      "id": "b1e7e001-0000-4000-8000-000000000003"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appmaweKgwIxJAZgj",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblAVaMA0zvLsD7aj",
+          "mode": "id"
+        },
+        "filterByFormula": "{Status}='Aprovada'",
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "b1e7e001-0000-4000-8000-000000000004",
+      "name": "Buscar trocas",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        770,
+        560
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "vYJ5bxMk3hhWf5MA",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "5e1c0a11-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.acao === 'receita' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b1e7e001-0000-4000-8000-000000000005",
+      "name": "É receita?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1210,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "pt-BR,pt;q=0.9"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "name": "Baixar receita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -300
+      ],
+      "id": "b1e7e001-0000-4000-8000-000000000006",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lê a página da receita: primeiro os dados estruturados (JSON-LD recipeIngredient); se não tiver, o texto da página; se o site bloquear, o nome do prato no link\nconst sd = $getWorkflowStaticData('global');\nconst ent = $('Entender mensagem').first().json;\nconst s = sd.sessoes[ent.sessao];\nconst produtos = sd.catalogo || [];\nconst html = String($json.data || '');\nlet nome = '', ings = [];\nfor (const m of html.matchAll(/<script[^>]*application\\/ld\\+json[^>]*>([\\s\\S]*?)<\\/script>/gi)) {\n  try {\n    const j = JSON.parse(m[1].trim());\n    const lista = [].concat(j, (j && j['@graph']) || []).flat();\n    for (const x of lista) {\n      const tipo = [].concat((x && x['@type']) || []);\n      if (tipo.includes('Recipe')) { nome = x.name || nome; ings = ings.concat(x.recipeIngredient || []); }\n    }\n  } catch (e) {}\n}\nlet fonte = 'dados da receita (JSON-LD)', conteudo = ings.map(i => '- ' + String(i).replace(/\\s+/g, ' ').trim()).join('\\n');\nif (!ings.length) {\n  const texto = html.replace(/<script[\\s\\S]*?<\\/script>|<style[\\s\\S]*?<\\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim();\n  if (texto.length > 300) { fonte = 'texto da página'; conteudo = texto.slice(0, 6000); }\n  else { fonte = 'nome do prato no link (o site não abriu)'; conteudo = ent.url; }\n}\nsd.ultimaReceita = { url: ent.url, fonte, ingredientes: ings.length, ts: Date.now() };\nconst trocas = sd.trocas || [];\nconst trocasTexto = trocas.length ? trocas.map((t, i) => `${i + 1}. ${t.ingrediente} -> ${t.risco.startsWith('Alto') ? 'SEM TROCA SEGURA' : t.skus.join(', ')}`).join('\\n') : 'nenhuma';\nconst catTexto = produtos.map(p => `${p.SKU} | ${p.Produto} | ${p.Marca} | ${p.Unidade} | ${p['Como o povo chama'] || ''} | estoque ${p.Estoque ?? 0}`).join('\\n');\nconst carTexto = Object.entries(s.carrinho).map(([sku, q]) => `${sku} x ${q}`).join('\\n') || 'vazio';\nconst prompt = `Você trabalha no Tá Faltando?, um mercadinho de bairro que entrega pelo WhatsApp.\nO cliente mandou o link de uma receita. Sua tarefa é montar o carrinho com os ingredientes que existem no catálogo e devolver um JSON. Você não calcula preço nem total.\n\nCATÁLOGO (sku | produto | marca | unidade | como o povo chama | estoque)\n${catTexto}\n\nCARRINHO ATUAL (sku x quantidade)\n${carTexto}\n\nTROCAS APROVADAS (ingrediente que não temos -> sku que pode substituir)\n${trocasTexto}\n\nRECEITA ${nome ? '\"' + nome + '\"' : ''} (fonte: ${fonte})\n${conteudo}\n\nREGRAS\n- Separe os ingredientes em 3 grupos:\n  1. PRINCIPAIS que existem no catálogo (o que faz o prato: massa, carne, molho, queijo, legumes): vão em \"operacoes\" com tipo \"adicionar\". Quantidade = quantos pacotes/unidades do catálogo a receita precisa (normalmente 1).\n  2. BÁSICOS que quase todo mundo tem em casa (sal, açúcar, óleo, azeite, pimenta, alho, cebola, temperos secos) e que existem no catálogo: vão em \"em_casa\" com o sku. NÃO entram no carrinho.\n  3. O que não existe no catálogo: vai em \"nao_temos\". Se estiver na lista TROCAS APROVADAS, preencha \"troca_n\" e \"troca_sku\" (null se SEM TROCA SEGURA). Fora da lista, troca_sku null.\n- Use SÓ skus que existem no catálogo. Nunca invente produto nem sku. Não repita o mesmo sku em grupos diferentes.\n- Ignore água e itens que não são comida.\n- Em \"receita\" escreva o nome do prato. Se a fonte for o nome do prato no link, deduza os ingredientes típicos desse prato e escreva em \"aviso\": \"Não consegui abrir o site, montei pelo nome do prato.\".\n\nResponda SÓ com um JSON válido, sem nada antes ou depois, neste formato:\n{\"receita\":\"Macarrão à bolonhesa\",\"aviso\":\"\",\"operacoes\":[{\"tipo\":\"adicionar\",\"sku\":\"MER-01\",\"quantidade\":1,\"pedido\":\"500 g de espaguete\"}],\"em_casa\":[{\"pedido\":\"sal\",\"sku\":\"MER-07\"}],\"nao_temos\":[{\"pedido\":\"manjericão\",\"troca_sku\":null,\"troca_n\":null}],\"duvidas\":[],\"fechar\":false,\"resposta\":\"\"}`;\nreturn [{ json: { prompt, sessao: ent.sessao } }];\n"
+      },
+      "name": "Ler receita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1430,
+        -120
+      ],
+      "id": "b1e7e001-0000-4000-8000-000000000007"
+    }
+  ],
+  "connections": {
+    "Mensagem no chat": {
+      "main": [
+        [
+          {
+            "node": "Ler cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler cache": {
+      "main": [
+        [
+          {
+            "node": "Catálogo em cache?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catálogo em cache?": {
+      "main": [
+        [
+          {
+            "node": "Entender mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar catálogo": {
+      "main": [
+        [
+          {
+            "node": "Buscar trocas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar catálogo": {
+      "main": [
+        [
+          {
+            "node": "Entender mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entender mensagem": {
+      "main": [
+        [
+          {
+            "node": "É receita?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Precisa de IA?": {
+      "main": [
+        [
+          {
+            "node": "Entender pedido (IA)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta pronta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Entender pedido (IA)": {
+      "main": [
+        [
+          {
+            "node": "Atualizar carrinho",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Entender pedido (IA)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta pronta": {
+      "main": [
+        [
+          {
+            "node": "Vai pagar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar carrinho": {
+      "main": [
+        [
+          {
+            "node": "Vai pagar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vai pagar?": {
+      "main": [
+        [
+          {
+            "node": "Buscar cliente Asaas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Conferir pagamento?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar cliente Asaas": {
+      "main": [
+        [
+          {
+            "node": "Criar cobrança Pix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar cobrança Pix": {
+      "main": [
+        [
+          {
+            "node": "Pegar Pix copia e cola",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pegar Pix copia e cola": {
+      "main": [
+        [
+          {
+            "node": "Mensagem do Pix",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conferir pagamento?": {
+      "main": [
+        [
+          {
+            "node": "Consultar pagamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar pagamento": {
+      "main": [
+        [
+          {
+            "node": "Status do pagamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status do pagamento": {
+      "main": [
+        [
+          {
+            "node": "Foi pago?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Foi pago?": {
+      "main": [
+        [
+          {
+            "node": "Gravar pedido (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta do pagamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar pedido (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Montar itens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar itens": {
+      "main": [
+        [
+          {
+            "node": "Gravar itens (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar itens (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Resposta do pagamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder": {
+      "main": [
+        [
+          {
+            "node": "Preparar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem do Pix": {
+      "main": [
+        [
+          {
+            "node": "Preparar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta do pagamento": {
+      "main": [
+        [
+          {
+            "node": "Preparar evento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar evento": {
+      "main": [
+        [
+          {
+            "node": "Gravar evento (Airtable)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar evento (Airtable)": {
+      "main": [
+        [
+          {
+            "node": "Saída",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar trocas": {
+      "main": [
+        [
+          {
+            "node": "Salvar catálogo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É receita?": {
+      "main": [
+        [
+          {
+            "node": "Baixar receita",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Precisa de IA?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar receita": {
+      "main": [
+        [
+          {
+            "node": "Ler receita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler receita": {
+      "main": [
+        [
+          {
+            "node": "Entender pedido (IA)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

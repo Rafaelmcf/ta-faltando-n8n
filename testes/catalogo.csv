@@ -1,0 +1,43 @@
+SKU,Produto,Marca,Categoria,Unidade,Preço,Estoque,Maior de 18,Como o povo chama,Alergênicos
+BEB-01,Coca-Cola lata,Coca-Cola,Bebidas,lata 350 ml,5.49,48,,"coca, coquinha, coca lata, refri de cola",
+BEB-02,Coca-Cola 2 litros,Coca-Cola,Bebidas,garrafa 2 L,11.99,24,,"coca 2 litros, coca grande, cocão",
+BEB-03,Guaraná Antarctica lata,Antarctica,Bebidas,lata 350 ml,4.79,36,,"guaraná, guaraná lata, refri de guaraná",
+BEB-04,Água mineral sem gás,Crystal,Bebidas,garrafa 500 ml,2.99,60,,"água, aguinha, água sem gás",
+BEB-05,Cerveja Heineken long neck,Heineken,Bebidas,long neck 330 ml,7.99,48,sim,"heineken, breja, cerveja, long neck",Glúten
+BEB-06,Vinho tinto suave,Pérgola,Bebidas,garrafa 1 L,24.9,12,sim,"vinho, vinho suave, vinho tinto",
+BEB-07,Suco de laranja integral,Natural One,Bebidas,garrafa 900 ml,15.9,10,,"suco, suco de laranja",
+SNK-01,Doritos Queijo Nacho,Elma Chips,Snacks,pacote 84 g,9.99,20,,"doritos, salgadinho de queijo nacho, salgadinho triangulo",Leite;Glúten
+SNK-02,Batata Ruffles Original,Elma Chips,Snacks,pacote 76 g,9.49,20,,"ruffles, batatinha, batata de pacote",
+SNK-03,Pipoca de micro-ondas manteiga,Yoki,Snacks,pacote 100 g,4.99,30,,"pipoca, pipoca de micro-ondas",Leite
+SNK-04,Amendoim japonês,Dori,Snacks,pacote 150 g,6.49,15,,"amendoim, japonês",Amendoim;Glúten;Soja
+DOC-01,Chocolate ao leite,Lacta,Doces,barra 80 g,6.99,25,,"chocolate, barra de chocolate, lacta",Leite;Soja
+DOC-02,Creme de avelã Nutella,Ferrero,Doces,pote 350 g,27.9,8,,"nutella, creme de avelã",Leite;Soja
+DOC-03,Sorvete napolitano,Kibon,Congelados,"pote 1,5 L",24.9,10,,"sorvete, napolitano, pote de sorvete",Leite
+DOC-04,Biscoito recheado chocolate,Oreo,Doces,pacote 90 g,4.49,30,,"oreo, bolacha recheada, biscoito recheado",Glúten;Leite;Soja
+MER-01,Macarrão espaguete,Barilla,Mercearia,pacote 500 g,8.99,20,,"macarrão, espaguete, massa",Glúten
+MER-02,Lámen sabor galinha,Nissin,Mercearia,pacote 85 g,2.79,40,,"miojo, miojo de galinha, lamen",Glúten
+MER-03,Lámen sabor tomate,Nissin,Mercearia,pacote 85 g,2.79,30,,"miojo de tomate, lamen de tomate",Glúten
+MER-04,Molho de tomate tradicional,Pomarola,Mercearia,sachê 300 g,4.29,30,,"molho, molho de tomate, extrato",
+MER-05,Arroz branco tipo 1,Camil,Mercearia,pacote 1 kg,7.49,20,,arroz,
+MER-06,Feijão carioca,Camil,Mercearia,pacote 1 kg,8.99,15,,feijão,
+MER-07,Sal refinado,Cisne,Mercearia,pacote 1 kg,3.49,20,,sal,
+MER-08,Azeite extravirgem,Gallo,Mercearia,garrafa 500 ml,39.9,8,,"azeite, azeite de oliva",
+MER-09,Óleo de soja,Liza,Mercearia,garrafa 900 ml,8.49,15,,"óleo, óleo de cozinha",Soja
+MER-10,Pimenta-do-reino moída,Kitano,Mercearia,pote 40 g,5.99,12,,"pimenta, pimenta do reino",
+MER-11,Orégano,Kitano,Mercearia,pacote 10 g,3.49,15,,orégano,
+MER-12,Achocolatado em pó,Toddy,Mercearia,pote 370 g,9.99,12,,"toddy, achocolatado",
+MER-13,Açúcar refinado,União,Mercearia,pacote 1 kg,5.49,20,,açúcar,
+MER-14,Pão de forma tradicional,Pullman,Mercearia,pacote 480 g,9.99,15,,"pão de forma, pão",Glúten
+FRI-01,Leite integral,Italac,Frios e laticínios,caixa 1 L,5.99,36,,"leite, leite de caixinha",Leite
+FRI-02,Queijo parmesão ralado,Faixa Azul,Frios e laticínios,pacote 50 g,8.99,15,,"queijo ralado, parmesão",Leite
+FRI-03,Creme de leite,Nestlé,Frios e laticínios,caixinha 200 g,4.49,20,,creme de leite,Leite
+FRI-04,Iogurte de morango,Danone,Frios e laticínios,bandeja 6x90 g,9.99,12,,"danone, iogurte",Leite
+FRI-05,Manteiga com sal,Aviação,Frios e laticínios,pote 200 g,14.9,10,,manteiga,Leite
+FRI-06,Ovos brancos,Granja Mantiqueira,Frios e laticínios,bandeja 12 un,13.9,12,,"ovo, ovos, dúzia de ovos",Ovo
+CAR-01,Carne moída patinho,Friboi,Carnes,bandeja 500 g,24.9,10,,"carne moída, moída",
+HOR-01,Cebola,Hortifruti,Hortifruti,kg,5.99,15,,cebola,
+HOR-02,Alho,Hortifruti,Hortifruti,cabeça 100 g,3.99,20,,alho,
+LIM-01,Esponja de aço,Bombril,Limpeza,pacote 8 un,3.99,20,,"bombril, palha de aço, esponja de aço",
+LIM-02,Detergente líquido neutro,Ypê,Limpeza,frasco 500 ml,2.99,30,,"detergente, ypê",
+HIG-01,Papel higiênico folha dupla,Neve,Higiene e farmácia,pacote 4 rolos,9.99,20,,"papel higiênico, papel",
+HIG-02,Analgésico paracetamol 750 mg,Tylenol,Higiene e farmácia,caixa 20 comprimidos,19.9,10,,"tylenol, remédio para dor de cabeça, paracetamol",
