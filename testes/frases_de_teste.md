@@ -68,3 +68,12 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | 41 | Cliente A: "2 refrigerante de cola", fechar, paguei | 2 Coca-Cola lata; linha nova em Aprendizados com status Candidato e 1 confirmação | ok |
 | 42 | Cliente B: "um refrigerante de cola", fechar, paguei | a mesma linha passa para Oficial, com 2 confirmações e os 2 clientes | ok |
 | 43 | Cliente C: "3 refrigerante de cola" | 3 Coca-Cola lata, já usando o apelido oficial | ok |
+
+**Me dá uma ideia (10/11):** sem IA, tudo por regra.
+
+| # | Conversa | Certo | Resultado |
+|---|---|---|---|
+| 44 | me dá uma ideia / 1 / 2 / 1 | pergunta pra quê, pergunta pra quantos, mostra 3 combos de jantar pra 2 e põe a bolonhesa no carrinho | ok, menos de 2 s por mensagem |
+| 45 | me dá uma ideia / 3 / 4 / 2 | 3 combos de petisco pra 4, põe o Petisco salgado (R$ 73,90) | ok |
+| 46 | me dá uma ideia / 2 coca | sai da sugestão e põe 2 Coca-Cola lata | ok |
+| 47 | coca zero antes, depois "ideia pra um lanche pra 3 pessoas" | combos já vêm com Guaraná Zero no lugar da Coca | ok (teste do código) |
