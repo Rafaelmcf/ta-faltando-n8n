@@ -45,3 +45,9 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 **2ª rodada:** 34 de 35 certas. Tempo medido do lado do cliente, em 38 mensagens: média 6,5 s, mediana 5,3 s, 5% mais lentos acima de 14,6 s, máximo 15,0 s.
 
 **Receita por link:** `https://www.tudogostoso.com.br/receita/92066-macarrao-a-bolonhesa.html` teve 11 ingredientes lidos do JSON-LD. Foram para o carrinho espaguete, carne moída e molho de tomate. Sal, alho, cebola e orégano apareceram como "talvez você já tenha em casa". Salsicha, caldo de carne, mussarela e pimentão vieram em "não temos". Com um site que não abre, o sistema montou o carrinho pelo nome do prato no link e avisou.
+
+**Ajuste de 10/11 à tarde:** o Rafael testou "guaraná zero" e o sistema oferecia Coca-Cola, porque a IA reaproveitou a troca da Coca Zero. Agora o código confere se a troca escolhida pela IA é mesmo do produto que o cliente pediu. Se não for, ele só avisa que não tem.
+
+| # | Frase do cliente | Certo | Antes | Depois |
+|---|---|---|---|---|
+| 36 | 2 guaraná zero e 1 coca | 1 Coca-Cola lata, avisa que não tem guaraná zero | oferecia Coca-Cola no lugar do guaraná | ok |
