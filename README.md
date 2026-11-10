@@ -25,6 +25,7 @@ Na segunda rodada sobrou um erro: "vinho tinto seco" entrava direto como vinho s
 |---|---|
 | Pedidos com o carrinho certo (2ª rodada) | 34 de 35 (97%); o que errou foi corrigido e testado de novo |
 | Pedidos com o carrinho certo (3ª rodada, com sugestão e pesquisa) | 40 de 40 |
+| Revisão procurando erro (15 casos difíceis: áudio com ruído, lista borrada, vídeo que não é receita) | 5 erros achados, 4 corrigidos; depois disso os 40 casos de novo: 40 de 40 |
 | Produto inventado pela IA | nenhum (o código descarta qualquer código de produto que não exista) |
 | Troca colocada no carrinho sem o cliente aceitar | nenhuma depois das travas |
 | Tempo de resposta com IA | 2ª rodada: 5,3 s na mediana e 14,6 s nos 5% mais lentos. 3ª rodada (48 mensagens): 2,9 s na mediana e 18,1 s nos 5% mais lentos |
@@ -32,7 +33,7 @@ Na segunda rodada sobrou um erro: "vinho tinto seco" entrava direto como vinho s
 | Receita por link | ingredientes lidos direto da página em 1 mensagem |
 | Foto da lista escrita à mão | 6 de 6 itens lidos e no carrinho, 4,7 s |
 | Áudio | 3 de 3 itens entendidos e no carrinho, 4,4 s |
-| Receita de vídeo do YouTube | descrição lida em 8 s; Short sem ingredientes na descrição assistido pelo Gemini em 19 s |
+| Receita de vídeo do YouTube | descrição lida em cerca de 8 s; vídeo sem lista na descrição assistido pelo Gemini em 7 a 60 s |
 | Mensagens até pagar | 3 (pedido, "fechar", "paguei") |
 | Erros de execução registrados | 0 em 95 mensagens |
 
@@ -135,9 +136,28 @@ O plano era WhatsApp Cloud API. Na hora de ligar o número de teste, a Meta bloq
 
 ### Limites e próximos passos
 
-- O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e testar um modelo pago para comparar.
-- Os testes foram feitos por mim, com frases que eu escrevi. O próximo teste é com pessoas de verdade.
-- Ainda não implementado: painel do dono. A lista de teste foi desenhada com uma fonte que imita letra de mão e o áudio foi gerado por voz sintética (`testes/arquivos/audio_pedido.ogg`); o próximo teste é com fotos e áudios de pessoas de verdade.
+Depois de terminar as funções novas, refiz os testes procurando erro de propósito: lista torta e borrada, áudio com ruído e correção no meio, vídeo que não é receita, termos que a Wikipédia explica mal. O que achei:
+
+**Falhou e foi corrigido no mesmo dia**
+- Áudio com correção no meio ("me vê arroz... não, tira o arroz, põe feijão"): o arroz ficava no carrinho. Agora o áudio é transcrito palavra por palavra e a correção é entendida como num texto digitado.
+- Vídeo que não é receita (um clipe de música): o bot dizia "não consegui assistir o vídeo". Agora diz que assistiu e não achou receita.
+- Receita com "2 gemas de ovo" dizia que não tinha ovos.
+- A IA às vezes punha "manteiga" em "não temos" mesmo com manteiga no catálogo. Agora o código confere: se o nome bate com um produto em estoque, ele entra.
+- Troca oferecida para um produto que já estava no carrinho (tomate pelati → o molho que já tinha entrado).
+
+**Funciona, mas é frágil**
+- Áudio: só testei com voz sintética. Com ruído, a voz sintética saiu tão ruim que o Gemini ouviu "reservei o adiantamento" no lugar de "três guaraná zero", e o guaraná não entrou. A resposta mostra o que foi entendido, então o cliente vê o erro, mas ainda falta testar com voz de gente.
+- Foto: a lista de teste é desenhada com fontes que imitam letra de mão. Leu 6 de 6 itens numa lista torta e borrada e ignorou o item riscado, mas letra de mão de verdade ainda não foi testada.
+- Pesquisa na Wikipédia: depende de a página certa existir. "Catupiry" voltou sem explicação, "Sonho de Valsa" virou "wafer" e o bot não ofereceu chocolate, e produtos comuns que o mercado não vende ("sabão em pó") também passam pela pesquisa, o que é desnecessário. Leva de 5 a 20 s.
+- Vídeo assistido pelo Gemini: de 7 a 60 s, dependendo da fila do plano gratuito. Com a lista na descrição, cerca de 8 s.
+- Trava dos apelidos: conta clientes diferentes que pagaram. No chat de teste, cada página recarregada é um cliente novo, então uma pessoa sozinha conseguiria oficializar um apelido pagando 2 vezes. No WhatsApp, seriam 2 telefones diferentes. O dono pode marcar "Rejeitado" a qualquer momento.
+- "Me dá uma ideia" usa pacotes inteiros: café da manhã para 1 pessoa sai de R$ 30 a R$ 55, porque vai uma caixa de leite e um pote de manteiga.
+- "Acabou o sal" já coloca 1 sal no carrinho sem perguntar.
+
+**Ainda não feito**
+- Painel do dono.
+- Teste com pessoas de verdade, com foto e áudio delas.
+- O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e comparar com um modelo pago.
 
 ### Como rodar
 

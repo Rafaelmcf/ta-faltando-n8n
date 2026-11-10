@@ -114,3 +114,25 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | 60 | vídeo "Bolonhesa rápido e fácil" (Cozinha Básica), com ingredientes na descrição | lê a descrição, põe carne moída e molho; cebola em "talvez você já tenha"; cenoura, salsão e bacon em "não temos" | ok, 8,2 s |
 | 61 | mesmo vídeo | tomate pelati: avisa que o molho que já está no carrinho faz o papel, sem oferecer o molho de novo | antes oferecia o molho de novo; corrigido, ok |
 | 62 | Short "MIOJO TURBINADO" (descrição sem ingredientes) | o Gemini assiste e acha ovo, miojo, acelga e cogumelo; põe miojo e ovos, avisa que não tem acelga e cogumelo | ok, 19 s |
+
+**Revisão procurando erro (10/11, fim da tarde):** depois de terminar as funções novas, testei de novo cada uma, agora com casos feitos para dar errado.
+
+| # | Conversa | Certo | Resultado |
+|---|---|---|---|
+| 63 | "3 refrigerante de cola" (apelido já oficial) | 3 Coca-Cola lata | ok |
+| 64 | me dá uma ideia / 2 / só eu / 3 | combo leve de café da manhã no carrinho | ok, mas sai R$ 30 a R$ 55 para 1 pessoa (pacotes inteiros) |
+| 65 | me dá uma ideia / sei lá / 2 coca | sai da sugestão e põe 2 Coca-Cola | ok |
+| 66 | tem passatempo? | explica que é biscoito (Wikipédia) e oferece o Oreo | ok, 14,5 s |
+| 67 | quero macaxeira | explica que é mandioca, não tem nada do tipo | ok |
+| 68 | biscoito globo | explica que é biscoito de polvilho, não tem | ok |
+| 69 | tem catupiry? | explicar que é requeijão | **frágil:** só "não temos", sem explicação, 20 s |
+| 70 | quero um sonho de valsa | oferecer chocolate | **frágil:** a Wikipédia diz "wafer" e o bot não oferece nada |
+| 71 | tenho arroz e feijão em casa, me manda 2 coca / minha despensa / acabou o feijão / minha despensa | despensa com os 2, depois só arroz; feijão no carrinho | ok |
+| 72 | já tenho cebola e molho de tomate / link da bolonhesa | molho e cebola como "você já tem em casa" | ok |
+| 73 | link youtu.be (formato curto) | lê a descrição | ok, 7,6 s |
+| 74 | clipe de música no YouTube | dizer que não é receita | **errou:** dizia "não consegui assistir". Corrigido: "assisti e não achei receita", ok |
+| 75 | Short "Como turbinar um miojo 2.0" | miojo, ovos e manteiga | **errou:** "2 gemas de ovo" e depois "manteiga" foram para "não temos". Corrigido (regra de parte do produto + conferência no código), ok, 17 s; numa das vezes levou 58 s |
+| 76 | foto de lista torta, borrada, com fontes misturadas e "leite 2" riscado | 6 itens, sem o leite | ok, 16 s |
+| 77 | áudio com ruído: "três guaraná zero, um pacote de arroz, não, tira o arroz, põe um feijão, e uma pasta de dente" | guaraná zero, feijão e pasta | **errou:** o arroz ficava. Corrigido (transcrição palavra por palavra), o arroz sai. O guaraná continua sem entrar porque a voz sintética com ruído ficou incompreensível ("reservei o adiantamento"); falta testar com voz de gente |
+
+**4ª rodada (10/11, depois das correções da revisão):** os 40 casos do `rodar_testes.mjs` de novo, para ver se as correções quebraram algo. 40 de 40 certos. Tempo em 48 mensagens: mediana 2,6 s, 5% mais lentos acima de 20,2 s, máximo 26,4 s, 7 mensagens acima de 10 s.
