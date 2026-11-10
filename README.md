@@ -24,9 +24,10 @@ Na segunda rodada sobrou um erro: "vinho tinto seco" entrava direto como vinho s
 | O que foi medido | Resultado |
 |---|---|
 | Pedidos com o carrinho certo (2ª rodada) | 34 de 35 (97%); o que errou foi corrigido e testado de novo |
+| Pedidos com o carrinho certo (3ª rodada, com sugestão e pesquisa) | 40 de 40 |
 | Produto inventado pela IA | nenhum (o código descarta qualquer código de produto que não exista) |
 | Troca colocada no carrinho sem o cliente aceitar | nenhuma depois das travas |
-| Tempo de resposta com IA | 5,3 s na mediana, 14,6 s nos 5% mais lentos |
+| Tempo de resposta com IA | 2ª rodada: 5,3 s na mediana e 14,6 s nos 5% mais lentos. 3ª rodada (48 mensagens): 2,9 s na mediana e 18,1 s nos 5% mais lentos |
 | Tempo de resposta sem IA (menu, carrinho, fechar) | menos de 1 s |
 | Receita por link | ingredientes lidos direto da página em 1 mensagem |
 | Mensagens até pagar | 3 (pedido, "fechar", "paguei") |
@@ -94,6 +95,8 @@ Eu queria usar a busca do Google dentro do Gemini, mas no plano gratuito ela é 
 
 ![Pesquisa na Wikipédia](docs/prints/25_chat_pesquisa_wikipedia_trakinas.jpg)
 
+**Despensa.** O cliente pode contar o que já tem em casa ("tenho sal, alho e molho de tomate em casa"). Isso fica guardado para ele, aparece em "minha despensa" e sai quando ele avisa "acabou o sal", que também já coloca o sal no carrinho. Numa receita, o que está na despensa não entra no carrinho e aparece como "você já tem em casa". Nos combos do "me dá uma ideia" também fica de fora. No chat de teste a despensa é ligada à conversa; no WhatsApp ela ficaria ligada ao telefone.
+
 **"Me dá uma ideia" sem gastar IA.** Quem não sabe o que pedir recebe 2 perguntas (pra quê e pra quantas pessoas) e 3 combos com preço, montados por regra só com o que tem em estoque. A quantidade acompanha o número de pessoas, e quem já disse que prefere zero recebe refrigerante zero no combo. Responder 1, 2 ou 3 coloca tudo no carrinho. Se no meio o cliente pede outra coisa ("2 coca"), o bot sai da sugestão e atende o pedido.
 
 ![Me dá uma ideia](docs/prints/24_chat_me_da_uma_ideia_3_combos.jpg)
@@ -121,7 +124,7 @@ O plano era WhatsApp Cloud API. Na hora de ligar o número de teste, a Meta bloq
 
 ### Limites e próximos passos
 
-- O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens, por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e testar um modelo pago para comparar.
+- O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e testar um modelo pago para comparar.
 - Os testes foram feitos por mim, com frases que eu escrevi. O próximo teste é com pessoas de verdade.
 - Ainda não implementado: áudio, foto da lista escrita à mão e painel do dono.
 

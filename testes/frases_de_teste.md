@@ -88,3 +88,14 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | 51 | negresco | a página achada é de um hotel, então não inventa: "não temos" | ok |
 | 52 | trakinas / pode ser / mais uma coca / fechar / paguei | linha nova em Aprendizados: "trakinas", Candidato, origem Pesquisa na Wikipédia, com o link; "pode ser" não vira apelido | ok |
 | 53 | um miojo / fechar | avisa que o Pix mínimo é R$ 5,00 e quanto falta | ok (antes dava erro ao gerar o Pix) |
+
+**Despensa (10/11):**
+
+| # | Conversa | Certo | Resultado |
+|---|---|---|---|
+| 54 | tenho sal, alho e molho de tomate em casa | anota os 3 na despensa e não põe no carrinho | ok |
+| 55 | minha despensa | lista os 3 | ok, menos de 2 s |
+| 56 | link da bolonhesa do TudoGostoso | põe espaguete e carne; molho, sal e alho aparecem como "você já tem em casa" | ok |
+| 57 | acabou o sal | tira o sal da despensa e põe 1 sal no carrinho | ok |
+
+**3ª rodada (10/11 à tarde):** os 40 casos do `rodar_testes.mjs`, depois do aprendizado, do "me dá uma ideia", da pesquisa e da despensa. 40 de 40 certos. Tempo em 48 mensagens: mediana 2,9 s, 5% mais lentos acima de 18,1 s, máximo 30,2 s, 11 mensagens acima de 10 s.
