@@ -88,11 +88,17 @@ flowchart LR
 
 **Aprende apelido novo, com trava contra trote.** Quando o cliente chama um produto de um jeito que não está no catálogo ("refrigerante de cola") e a IA acerta, o termo fica guardado como candidato. Ele só é gravado depois que o cliente paga, porque pagar é a prova de que a IA entendeu certo. Na tabela Aprendizados, o termo vira oficial quando 2 clientes diferentes pagaram com ele, ou quando o dono muda o status para "Oficial". Se o dono marcar "Rejeitado", o termo nunca mais volta. O apelido oficial passa a valer na hora, na próxima mensagem de qualquer cliente, sem treinar modelo nenhum: ele entra na lista "Como o povo chama" que vai junto com o catálogo para a IA.
 
+**Pesquisa o que não conhece.** Se o cliente pede algo que não está no catálogo e não tem troca na tabela ("trakinas", "jerimum"), o sistema procura o termo na Wikipédia em português e o Gemini lê só os trechos encontrados. A resposta diz a fonte ("Pesquisei na Wikipédia: é marca brasileira de biscoito recheado") e oferece o produto mais parecido, que só entra no carrinho se o cliente aceitar. Se nenhum trecho explica o termo, o bot não inventa e diz que não tem. O resultado fica guardado, então o mesmo termo não é pesquisado de novo. Quando o cliente aceita e paga, o termo vai para a tabela Aprendizados com a origem "Pesquisa na Wikipédia" e o link da página, e passa pela mesma trava dos 2 clientes.
+
+Eu queria usar a busca do Google dentro do Gemini, mas no plano gratuito ela é recusada ("quota excedida") nos dois modelos que testei, enquanto a mesma chamada sem a busca funciona. Troquei pela Wikipédia para manter o projeto sem custo.
+
+![Pesquisa na Wikipédia](docs/prints/25_chat_pesquisa_wikipedia_trakinas.jpg)
+
 **"Me dá uma ideia" sem gastar IA.** Quem não sabe o que pedir recebe 2 perguntas (pra quê e pra quantas pessoas) e 3 combos com preço, montados por regra só com o que tem em estoque. A quantidade acompanha o número de pessoas, e quem já disse que prefere zero recebe refrigerante zero no combo. Responder 1, 2 ou 3 coloca tudo no carrinho. Se no meio o cliente pede outra coisa ("2 coca"), o bot sai da sugestão e atende o pedido.
 
 ![Me dá uma ideia](docs/prints/24_chat_me_da_uma_ideia_3_combos.jpg)
 
-**+18 e Pix sem duplicar.** Bebida alcoólica fica em espera até o "sim". Se o cliente manda "fechar" de novo com o mesmo valor, recebe o mesmo Pix, sem criar outra cobrança.
+**+18 e Pix sem duplicar.** Bebida alcoólica fica em espera até o "sim". Se o cliente manda "fechar" de novo com o mesmo valor, recebe o mesmo Pix, sem criar outra cobrança. Abaixo de R$ 5,00, o mínimo do Asaas, o bot avisa quanto falta em vez de tentar gerar o Pix e falhar.
 
 **Medir tudo.** Cada mensagem gera uma linha na tabela Eventos com a mensagem, a resposta, o tempo, se usou IA, a intenção e erro. Se o Airtable falhar, a resposta ao cliente sai do mesmo jeito.
 
@@ -126,4 +132,4 @@ O plano era WhatsApp Cloud API. Na hora de ligar o número de teste, a Meta bloq
 3. Monte a base no Airtable com `testes/catalogo.csv` e as tabelas citadas acima, e troque os IDs de base e tabela nos nós.
 4. Publique o fluxo e abra a URL pública do chat.
 
-As frases de teste e o gabarito estão em [`testes/frases_de_teste.md`](testes/frases_de_teste.md). Para repetir o teste no seu n8n, rode `node testes/rodar_testes.mjs` (Node 18 ou mais novo): ele manda os 38 casos, cada uma numa conversa nova, confere o carrinho e mostra o acerto e o tempo.
+As frases de teste e o gabarito estão em [`testes/frases_de_teste.md`](testes/frases_de_teste.md). Para repetir o teste no seu n8n, rode `node testes/rodar_testes.mjs` (Node 18 ou mais novo): ele manda os 40 casos, cada uma numa conversa nova, confere o carrinho e mostra o acerto e o tempo.

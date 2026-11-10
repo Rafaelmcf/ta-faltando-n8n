@@ -77,3 +77,14 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | 45 | me dá uma ideia / 3 / 4 / 2 | 3 combos de petisco pra 4, põe o Petisco salgado (R$ 73,90) | ok |
 | 46 | me dá uma ideia / 2 coca | sai da sugestão e põe 2 Coca-Cola lata | ok |
 | 47 | coca zero antes, depois "ideia pra um lanche pra 3 pessoas" | combos já vêm com Guaraná Zero no lugar da Coca | ok (teste do código) |
+
+**Pesquisa do que não conhece (10/11):** Wikipédia em português + Gemini lendo só os trechos.
+
+| # | Conversa | Certo | Resultado |
+|---|---|---|---|
+| 48 | tem trakinas? / pode ser | explica que é biscoito recheado, cita a Wikipédia, oferece o Oreo e só põe depois do "pode ser" | ok |
+| 49 | jerimum | explica que é abóbora e avisa que não tem nada do mesmo tipo | ok |
+| 50 | picanha | explica que é corte bovino e não oferece carne moída no lugar | ok |
+| 51 | negresco | a página achada é de um hotel, então não inventa: "não temos" | ok |
+| 52 | trakinas / pode ser / mais uma coca / fechar / paguei | linha nova em Aprendizados: "trakinas", Candidato, origem Pesquisa na Wikipédia, com o link; "pode ser" não vira apelido | ok |
+| 53 | um miojo / fechar | avisa que o Pix mínimo é R$ 5,00 e quanto falta | ok (antes dava erro ao gerar o Pix) |

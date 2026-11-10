@@ -46,6 +46,8 @@ const CASOS = [
   ['2 guaraná zero', { 'Guaraná Antarctica Zero lata': 2 }],
   [['me dá uma ideia', '1', '2', '1'], { 'Macarrão espaguete': 1, 'Carne moída patinho': 1, 'Molho de tomate tradicional': 1, 'Queijo parmesão ralado': 1, 'Coca-Cola 2 litros': 1 }],
   [['me dá uma ideia', '2 coca'], { 'Coca-Cola lata': 2 }],
+  [['tem trakinas?', 'pode ser'], { 'Biscoito recheado chocolate': 1 }],
+  ['jerimum', {}, 'Wikipédia'],
 ];
 
 const lerCarrinho = (texto) => {
