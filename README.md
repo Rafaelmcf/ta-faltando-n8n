@@ -30,6 +30,8 @@ Na segunda rodada sobrou um erro: "vinho tinto seco" entrava direto como vinho s
 | Tempo de resposta com IA | 2ª rodada: 5,3 s na mediana e 14,6 s nos 5% mais lentos. 3ª rodada (48 mensagens): 2,9 s na mediana e 18,1 s nos 5% mais lentos |
 | Tempo de resposta sem IA (menu, carrinho, fechar) | menos de 1 s |
 | Receita por link | ingredientes lidos direto da página em 1 mensagem |
+| Foto da lista escrita à mão | 6 de 6 itens lidos e no carrinho, 4,7 s |
+| Áudio | 3 de 3 itens entendidos e no carrinho, 4,4 s |
 | Mensagens até pagar | 3 (pedido, "fechar", "paguei") |
 | Erros de execução registrados | 0 em 95 mensagens |
 
@@ -89,6 +91,10 @@ flowchart LR
 
 **Aprende apelido novo, com trava contra trote.** Quando o cliente chama um produto de um jeito que não está no catálogo ("refrigerante de cola") e a IA acerta, o termo fica guardado como candidato. Ele só é gravado depois que o cliente paga, porque pagar é a prova de que a IA entendeu certo. Na tabela Aprendizados, o termo vira oficial quando 2 clientes diferentes pagaram com ele, ou quando o dono muda o status para "Oficial". Se o dono marcar "Rejeitado", o termo nunca mais volta. O apelido oficial passa a valer na hora, na próxima mensagem de qualquer cliente, sem treinar modelo nenhum: ele entra na lista "Como o povo chama" que vai junto com o catálogo para a IA.
 
+**Foto da lista e áudio.** O cliente pode mandar a foto da lista escrita à mão ou um áudio, pelo clipe do chat. O Gemini só transcreve o pedido do jeito que está escrito ou falado ("1 dz ovos", "bombril"), e esse texto segue o mesmo caminho de uma mensagem digitada, com as mesmas regras e travas. A resposta mostra primeiro o que foi lido ("Li na sua lista: ..."), para o cliente conferir. Se não der para ler, o bot pede para mandar de novo ou escrever.
+
+![Foto da lista](docs/prints/26_chat_foto_da_lista_lida.jpg)
+
 **Pesquisa o que não conhece.** Se o cliente pede algo que não está no catálogo e não tem troca na tabela ("trakinas", "jerimum"), o sistema procura o termo na Wikipédia em português e o Gemini lê só os trechos encontrados. A resposta diz a fonte ("Pesquisei na Wikipédia: é marca brasileira de biscoito recheado") e oferece o produto mais parecido, que só entra no carrinho se o cliente aceitar. Se nenhum trecho explica o termo, o bot não inventa e diz que não tem. O resultado fica guardado, então o mesmo termo não é pesquisado de novo. Quando o cliente aceita e paga, o termo vai para a tabela Aprendizados com a origem "Pesquisa na Wikipédia" e o link da página, e passa pela mesma trava dos 2 clientes.
 
 Eu queria usar a busca do Google dentro do Gemini, mas no plano gratuito ela é recusada ("quota excedida") nos dois modelos que testei, enquanto a mesma chamada sem a busca funciona. Troquei pela Wikipédia para manter o projeto sem custo.
@@ -126,7 +132,7 @@ O plano era WhatsApp Cloud API. Na hora de ligar o número de teste, a Meta bloq
 
 - O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e testar um modelo pago para comparar.
 - Os testes foram feitos por mim, com frases que eu escrevi. O próximo teste é com pessoas de verdade.
-- Ainda não implementado: áudio, foto da lista escrita à mão e painel do dono.
+- Ainda não implementado: painel do dono. A lista de teste foi desenhada com uma fonte que imita letra de mão e o áudio foi gerado por voz sintética (`testes/arquivos/audio_pedido.ogg`); o próximo teste é com fotos e áudios de pessoas de verdade.
 
 ### Como rodar
 

@@ -99,3 +99,10 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | 57 | acabou o sal | tira o sal da despensa e põe 1 sal no carrinho | ok |
 
 **3ª rodada (10/11 à tarde):** os 40 casos do `rodar_testes.mjs`, depois do aprendizado, do "me dá uma ideia", da pesquisa e da despensa. 40 de 40 certos. Tempo em 48 mensagens: mediana 2,9 s, 5% mais lentos acima de 18,1 s, máximo 30,2 s, 11 mensagens acima de 10 s.
+
+**Foto da lista e áudio (10/11):**
+
+| # | Arquivo | Certo | Resultado |
+|---|---|---|---|
+| 58 | foto de lista "2 coca, 1 miojo de galinha, detergente, pão de forma, 1 dz ovos, bombril" (fonte que imita letra de mão) | os 6 itens, com 1 bandeja de ovos e a esponja de aço | ok, 4,7 s (25 s numa vez em que o Gemini estava com fila) |
+| 59 | `arquivos/audio_pedido.ogg`, voz sintética: "me manda duas coca, um miojo de galinha e um detergente" | 2 Coca-Cola lata, 1 lámen galinha, 1 detergente | ok, 4,4 s |
