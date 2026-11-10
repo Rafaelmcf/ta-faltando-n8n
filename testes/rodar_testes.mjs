@@ -35,7 +35,6 @@ const CASOS = [
   ['picanha', {}, 'Não temos'],
   [['2 coca', 'tira uma coca'], { 'Coca-Cola lata': 1 }],
   [['coca', 'muda pra 4'], { 'Coca-Cola lata': 4 }],
-  ['uma coca zero', {}, 'diabetes'],
   ['quero manjericão', {}, 'orégano'],
   ['tempero verde', {}, 'O que muda'],
   ['fermento', {}, 'não vou sugerir'],
@@ -43,7 +42,8 @@ const CASOS = [
   ['parmesão em peça', {}, 'ralado'],
   ['vinho tinto seco', {}, 'adocicado'],
   [['nescau', 'pode ser'], { 'Achocolatado em pó': 1 }],
-  ['2 guaraná zero e 1 coca', { 'Coca-Cola lata': 1 }, 'guaraná zero'],
+  ['uma coca zero', {}, 'Guaraná Antarctica Zero'],
+  ['2 guaraná zero', { 'Guaraná Antarctica Zero lata': 2 }],
 ];
 
 const lerCarrinho = (texto) => {

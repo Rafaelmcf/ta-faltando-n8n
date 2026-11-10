@@ -17,7 +17,7 @@ Escrevi 35 pedidos como as pessoas escrevem de verdade: apelido ("bombril", "bre
 A primeira rodada achou dois erros que poderiam dar problema de verdade:
 
 - "uma dúzia de ovos" virava 12 bandejas de ovos, um carrinho de R$ 166,80. A IA contava ovos e o catálogo vende bandeja. Corrigi a regra de quantidade, que agora é sempre na unidade de venda.
-- "uma coca zero" virava Coca-Cola comum, sem avisar. Para quem tem diabetes, isso é grave. Agora existe uma trava no código: se o cliente pediu zero, diet, light ou sem lactose e o produto não é dessa versão, o sistema não coloca no carrinho e avisa que a comum tem açúcar.
+- "uma coca zero" virava Coca-Cola comum, sem avisar. Para quem tem diabetes, isso é grave. Agora existe uma trava no código: quem pede zero recebe primeiro as opções zero que existem e, depois, o mesmo sabor comum com o aviso de que tem açúcar. Na mesma conversa o bot lembra que o cliente prefere zero.
 
 Na segunda rodada sobrou um erro: "vinho tinto seco" entrava direto como vinho suave. Coloquei uma segunda trava, que confere a resposta da IA contra a tabela de trocas, e repeti o teste até ele virar pergunta.
 

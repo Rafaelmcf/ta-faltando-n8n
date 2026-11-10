@@ -51,3 +51,12 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | # | Frase do cliente | Certo | Antes | Depois |
 |---|---|---|---|---|
 | 36 | 2 guaraná zero e 1 coca | 1 Coca-Cola lata, avisa que não tem guaraná zero | oferecia Coca-Cola no lugar do guaraná | ok |
+
+**Regra do refrigerante zero (sugestão do Rafael, 10/11):** quem pede zero costuma querer continuar sem açúcar. Agora, se não tem a versão zero pedida, o bot oferece primeiro os outros refrigerantes zero e depois o mesmo sabor comum, avisando que tem açúcar. Na mesma conversa, ele lembra que o cliente prefere zero. Para testar, o catálogo ganhou o Guaraná Antarctica Zero.
+
+| # | Frase do cliente | Certo | Resultado |
+|---|---|---|---|
+| 37 | uma coca zero | oferece Guaraná Zero e, como segunda opção, Coca comum com aviso de açúcar | ok |
+| 38 | 2 guaraná zero | 2 Guaraná Zero no carrinho | ok |
+| 39 | uma coca zero / e um guaraná | entende que é o Guaraná Zero (perfil da conversa) | ok |
+| 40 | um guaraná (conversa nova) | Guaraná comum | ok |
