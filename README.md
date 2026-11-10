@@ -168,7 +168,7 @@ Depois de terminar as funções novas, refiz os testes procurando erro de propó
 
 **Ainda não feito**
 - Teste com pessoas de verdade, com foto e áudio delas.
-- O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e comparar com um modelo pago.
+- O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. O chat do n8n devolve uma resposta só por mensagem, então não dá para mandar "um instante" antes da resposta final; enquanto isso ele mostra os pontinhos de "digitando". No WhatsApp, isso seria uma chamada a mais para a API mandando "um instante" quando a IA entra. Próximo passo: fazer isso e comparar com um modelo pago.
 
 ### Como rodar
 
