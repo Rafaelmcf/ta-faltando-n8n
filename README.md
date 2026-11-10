@@ -32,6 +32,7 @@ Na segunda rodada sobrou um erro: "vinho tinto seco" entrava direto como vinho s
 | Receita por link | ingredientes lidos direto da página em 1 mensagem |
 | Foto da lista escrita à mão | 6 de 6 itens lidos e no carrinho, 4,7 s |
 | Áudio | 3 de 3 itens entendidos e no carrinho, 4,4 s |
+| Receita de vídeo do YouTube | descrição lida em 8 s; Short sem ingredientes na descrição assistido pelo Gemini em 19 s |
 | Mensagens até pagar | 3 (pedido, "fechar", "paguei") |
 | Erros de execução registrados | 0 em 95 mensagens |
 
@@ -88,6 +89,10 @@ flowchart LR
 **Troca só com fonte.** As 24 trocas da tabela Substituições foram montadas a partir de guias de culinária (Purdue Extension, TudoGostoso, Band Receitas, Vitat), com o que muda no prato e um nível de risco. O texto "o que muda" vem da tabela, nunca da IA. Ingrediente estrutural, como fermento, farinha e gelatina, tem risco alto: o sistema avisa que falta e não sugere troca. Uma troca nova só vale depois de aprovada.
 
 **Receita em três grupos.** O link é baixado e os ingredientes saem dos dados estruturados da página. Os principais (massa, carne, molho) vão para o carrinho. Os básicos (sal, alho, cebola) aparecem como "talvez você já tenha em casa". O que o mercado não tem vem numa lista. Se o site bloquear o acesso, o sistema monta pelo nome do prato no link e avisa.
+
+**Receita de vídeo do YouTube.** Com link do YouTube (vídeo normal ou Short), o sistema lê primeiro a descrição do vídeo. Se ela tiver a lista de ingredientes, usa a lista, que é o caminho mais rápido. Se não tiver, o Gemini assiste o vídeo pelo link e anota os ingredientes que aparecem ou são falados, no plano gratuito. A resposta diz qual dos dois caminhos foi usado. Se o vídeo não abrir, monta pelo título e avisa. Quando a receita pede algo que não temos e a troca já está no carrinho (tomate pelati, com o molho de tomate já incluído), o bot só avisa, sem oferecer o mesmo produto de novo.
+
+![Receita de um Short do YouTube](docs/prints/27_chat_receita_video_youtube.jpg)
 
 **Aprende apelido novo, com trava contra trote.** Quando o cliente chama um produto de um jeito que não está no catálogo ("refrigerante de cola") e a IA acerta, o termo fica guardado como candidato. Ele só é gravado depois que o cliente paga, porque pagar é a prova de que a IA entendeu certo. Na tabela Aprendizados, o termo vira oficial quando 2 clientes diferentes pagaram com ele, ou quando o dono muda o status para "Oficial". Se o dono marcar "Rejeitado", o termo nunca mais volta. O apelido oficial passa a valer na hora, na próxima mensagem de qualquer cliente, sem treinar modelo nenhum: ele entra na lista "Como o povo chama" que vai junto com o catálogo para a IA.
 

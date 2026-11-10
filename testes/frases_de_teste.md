@@ -106,3 +106,11 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 |---|---|---|---|
 | 58 | foto de lista "2 coca, 1 miojo de galinha, detergente, pão de forma, 1 dz ovos, bombril" (fonte que imita letra de mão) | os 6 itens, com 1 bandeja de ovos e a esponja de aço | ok, 4,7 s (25 s numa vez em que o Gemini estava com fila) |
 | 59 | `arquivos/audio_pedido.ogg`, voz sintética: "me manda duas coca, um miojo de galinha e um detergente" | 2 Coca-Cola lata, 1 lámen galinha, 1 detergente | ok, 4,4 s |
+
+**Receita de vídeo do YouTube (10/11):**
+
+| # | Link | Certo | Resultado |
+|---|---|---|---|
+| 60 | vídeo "Bolonhesa rápido e fácil" (Cozinha Básica), com ingredientes na descrição | lê a descrição, põe carne moída e molho; cebola em "talvez você já tenha"; cenoura, salsão e bacon em "não temos" | ok, 8,2 s |
+| 61 | mesmo vídeo | tomate pelati: avisa que o molho que já está no carrinho faz o papel, sem oferecer o molho de novo | antes oferecia o molho de novo; corrigido, ok |
+| 62 | Short "MIOJO TURBINADO" (descrição sem ingredientes) | o Gemini assiste e acha ovo, miojo, acelga e cogumelo; põe miojo e ovos, avisa que não tem acelga e cogumelo | ok, 19 s |
