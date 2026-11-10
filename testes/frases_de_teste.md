@@ -120,7 +120,7 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | # | Conversa | Certo | Resultado |
 |---|---|---|---|
 | 63 | "3 refrigerante de cola" (apelido já oficial) | 3 Coca-Cola lata | ok |
-| 64 | me dá uma ideia / 2 / só eu / 3 | combo leve de café da manhã no carrinho | ok, mas sai R$ 30 a R$ 55 para 1 pessoa (pacotes inteiros) |
+| 64 | me dá uma ideia / 2 / só eu / 3 | combo leve de café da manhã no carrinho | ok (R$ 30 a R$ 55: é mercado, vende pacote fechado, e o que sobra fica em casa para as próximas refeições) |
 | 65 | me dá uma ideia / sei lá / 2 coca | sai da sugestão e põe 2 Coca-Cola | ok |
 | 66 | tem passatempo? | explica que é biscoito (Wikipédia) e oferece o Oreo | ok, 14,5 s |
 | 67 | quero macaxeira | explica que é mandioca, não tem nada do tipo | ok |

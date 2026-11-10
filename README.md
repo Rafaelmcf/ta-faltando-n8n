@@ -151,7 +151,6 @@ Depois de terminar as funções novas, refiz os testes procurando erro de propó
 - Pesquisa na Wikipédia: depende de a página certa existir. "Catupiry" voltou sem explicação, "Sonho de Valsa" virou "wafer" e o bot não ofereceu chocolate, e produtos comuns que o mercado não vende ("sabão em pó") também passam pela pesquisa, o que é desnecessário. Leva de 5 a 20 s.
 - Vídeo assistido pelo Gemini: de 7 a 60 s, dependendo da fila do plano gratuito. Com a lista na descrição, cerca de 8 s.
 - Trava dos apelidos: conta clientes diferentes que pagaram. No chat de teste, cada página recarregada é um cliente novo, então uma pessoa sozinha conseguiria oficializar um apelido pagando 2 vezes. No WhatsApp, seriam 2 telefones diferentes. O dono pode marcar "Rejeitado" a qualquer momento.
-- "Me dá uma ideia" usa pacotes inteiros: café da manhã para 1 pessoa sai de R$ 30 a R$ 55, porque vai uma caixa de leite e um pote de manteiga.
 - "Acabou o sal" já coloca 1 sal no carrinho sem perguntar.
 
 **Ainda não feito**
