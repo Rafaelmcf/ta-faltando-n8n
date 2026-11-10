@@ -120,4 +120,4 @@ O plano era WhatsApp Cloud API. Na hora de ligar o número de teste, a Meta bloq
 3. Monte a base no Airtable com `testes/catalogo.csv` e as tabelas citadas acima, e troque os IDs de base e tabela nos nós.
 4. Publique o fluxo e abra a URL pública do chat.
 
-As frases de teste e o gabarito estão em [`testes/frases_de_teste.md`](testes/frases_de_teste.md).
+As frases de teste e o gabarito estão em [`testes/frases_de_teste.md`](testes/frases_de_teste.md). Para repetir o teste no seu n8n, rode `node testes/rodar_testes.mjs` (Node 18 ou mais novo): ele manda as 36 frases, cada uma numa conversa nova, confere o carrinho e mostra o acerto e o tempo.
