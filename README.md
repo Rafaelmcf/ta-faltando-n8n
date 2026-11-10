@@ -47,7 +47,7 @@ Passei 15 anos gerenciando operação de comida que funciona de madrugada. Conhe
 | Conversa | Chat do n8n (canal plugável; o WhatsApp da Meta ficou bloqueado na criação da conta, veja abaixo) |
 | Orquestração | n8n Community, self-hosted em Docker |
 | IA | Google Gemini `gemini-3.5-flash-lite` via nó LangChain do n8n, temperatura 0,1 (plano gratuito) |
-| Banco | Airtable: Catálogo (42 produtos), Substituições (24 trocas com fonte), Pedidos, Itens do pedido, Eventos |
+| Banco | Airtable: Catálogo (43 produtos), Substituições (24 trocas com fonte), Aprendizados (apelidos novos), Pedidos, Itens do pedido, Eventos |
 | Pagamento | Asaas Sandbox: cobrança Pix, copia e cola e consulta de status |
 | Receita | Página baixada pelo n8n; ingredientes lidos do JSON-LD `recipeIngredient` |
 
@@ -86,6 +86,8 @@ flowchart LR
 
 **Receita em três grupos.** O link é baixado e os ingredientes saem dos dados estruturados da página. Os principais (massa, carne, molho) vão para o carrinho. Os básicos (sal, alho, cebola) aparecem como "talvez você já tenha em casa". O que o mercado não tem vem numa lista. Se o site bloquear o acesso, o sistema monta pelo nome do prato no link e avisa.
 
+**Aprende apelido novo, com trava contra trote.** Quando o cliente chama um produto de um jeito que não está no catálogo ("refrigerante de cola") e a IA acerta, o termo fica guardado como candidato. Ele só é gravado depois que o cliente paga, porque pagar é a prova de que a IA entendeu certo. Na tabela Aprendizados, o termo vira oficial quando 2 clientes diferentes pagaram com ele, ou quando o dono muda o status para "Oficial". Se o dono marcar "Rejeitado", o termo nunca mais volta. O apelido oficial passa a valer na hora, na próxima mensagem de qualquer cliente, sem treinar modelo nenhum: ele entra na lista "Como o povo chama" que vai junto com o catálogo para a IA.
+
 **+18 e Pix sem duplicar.** Bebida alcoólica fica em espera até o "sim". Se o cliente manda "fechar" de novo com o mesmo valor, recebe o mesmo Pix, sem criar outra cobrança.
 
 **Medir tudo.** Cada mensagem gera uma linha na tabela Eventos com a mensagem, a resposta, o tempo, se usou IA, a intenção e erro. Se o Airtable falhar, a resposta ao cliente sai do mesmo jeito.
@@ -111,7 +113,7 @@ O plano era WhatsApp Cloud API. Na hora de ligar o número de teste, a Meta bloq
 
 - O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens, por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e testar um modelo pago para comparar.
 - Os testes foram feitos por mim, com frases que eu escrevi. O próximo teste é com pessoas de verdade.
-- Ainda não implementado: áudio, foto da lista escrita à mão, aprendizado de apelidos novos e painel do dono.
+- Ainda não implementado: áudio, foto da lista escrita à mão e painel do dono.
 
 ### Como rodar
 

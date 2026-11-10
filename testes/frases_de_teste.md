@@ -60,3 +60,11 @@ Testado em 10/11/2026, com `gemini-3.5-flash-lite`, temperatura 0,1.
 | 38 | 2 guaraná zero | 2 Guaraná Zero no carrinho | ok |
 | 39 | uma coca zero / e um guaraná | entende que é o Guaraná Zero (perfil da conversa) | ok |
 | 40 | um guaraná (conversa nova) | Guaraná comum | ok |
+
+**Aprender apelido novo (10/11):** "refrigerante de cola" não está nos apelidos da Coca-Cola lata ("refri de cola" está). Teste com pagamento de verdade no Pix de teste, cada cliente numa conversa nova.
+
+| # | Passo | Certo | Resultado |
+|---|---|---|---|
+| 41 | Cliente A: "2 refrigerante de cola", fechar, paguei | 2 Coca-Cola lata; linha nova em Aprendizados com status Candidato e 1 confirmação | ok |
+| 42 | Cliente B: "um refrigerante de cola", fechar, paguei | a mesma linha passa para Oficial, com 2 confirmações e os 2 clientes | ok |
+| 43 | Cliente C: "3 refrigerante de cola" | 3 Coca-Cola lata, já usando o apelido oficial | ok |
