@@ -58,23 +58,32 @@ Passei 15 anos gerenciando operação de comida que funciona de madrugada. Conhe
 
 ### O fluxo
 
-![Fluxo completo no n8n, 32 nós](docs/prints/23_n8n_fluxo_completo_32_nos.png)
+![Fluxo completo no n8n, 48 nós](docs/prints/29_n8n_fluxo_completo_48_nos.jpg)
+
+Cada linha do print é uma etapa: em cima, a entrada e o catálogo em cache; depois foto, áudio, receita e vídeo; depois a IA, a pesquisa e o carrinho; embaixo, o Pix, a gravação do pedido e o registro de cada mensagem.
 
 ```mermaid
 flowchart LR
     A[Mensagem no chat] --> B{Catálogo em cache?}
-    B -- não --> C[Airtable: catálogo + trocas aprovadas] --> D
+    B -- não --> C[Airtable: catálogo, trocas e apelidos oficiais] --> D
     B -- sim --> D[Entender mensagem]
-    D --> E{Link de receita?}
-    E -- sim --> F[Baixar página e ler ingredientes] --> G
+    D --> F1{Foto ou áudio?}
+    F1 -- sim --> F2[Gemini transcreve] --> G
+    F1 -- não --> E{Link de receita?}
+    E -- site --> F[Baixar página e ler ingredientes] --> G
+    E -- YouTube --> Y{Ingredientes na descrição?}
+    Y -- sim --> G
+    Y -- não --> Y2[Gemini assiste o vídeo] --> G
     E -- não --> H{Precisa de IA?}
     H -- sim --> G[Gemini devolve JSON]
-    G --> I[Aplicar no carrinho com travas]
-    H -- não --> J[Resposta pronta: menu, carrinho, fechar]
+    G --> S{Termo desconhecido?}
+    S -- sim --> S2[Wikipédia + Gemini lê os trechos] --> I
+    S -- não --> I[Aplicar no carrinho com travas]
+    H -- não --> J[Resposta pronta: menu, carrinho, despensa, me dá uma ideia, fechar]
     I --> K{Fechar?}
     J --> K
     K -- sim --> L[Asaas: cobrança Pix]
-    K -- paguei --> M[Asaas: consultar status] --> N[Airtable: gravar pedido e itens]
+    K -- paguei --> M[Asaas: consultar status] --> N[Airtable: pedido, itens e apelidos aprendidos]
     L --> O[Registrar evento]
     M --> O
     K -- resposta --> O
@@ -115,6 +124,10 @@ Eu queria usar a busca do Google dentro do Gemini, mas no plano gratuito ela é 
 
 **+18 e Pix sem duplicar.** Bebida alcoólica fica em espera até o "sim". Se o cliente manda "fechar" de novo com o mesmo valor, recebe o mesmo Pix, sem criar outra cobrança. Abaixo de R$ 5,00, o mínimo do Asaas, o bot avisa quanto falta em vez de tentar gerar o Pix e falhar.
 
+**Painel do dono.** No Airtable, uma tela mostra os pedidos pagos, o faturamento, o ticket médio e os Pix esperando pagamento (hoje ou nos últimos 7 dias), os produtos com 5 ou menos no estoque, os apelidos que o bot aprendeu e o atendimento (mensagens, tempo médio, quantas usaram IA e quantas deram erro). Para aprovar ou barrar um apelido, o dono muda o Status para "Oficial" ou "Rejeitado" na tabela Aprendizados, e o bot passa a respeitar na próxima atualização do catálogo (até 15 min).
+
+![Painel do dono](docs/prints/28_airtable_painel_do_dono.jpg)
+
 **Medir tudo.** Cada mensagem gera uma linha na tabela Eventos com a mensagem, a resposta, o tempo, se usou IA, a intenção e erro. Se o Airtable falhar, a resposta ao cliente sai do mesmo jeito.
 
 ![Tabela Eventos no Airtable](docs/prints/22_airtable_eventos_cada_mensagem.jpg)
@@ -154,7 +167,6 @@ Depois de terminar as funções novas, refiz os testes procurando erro de propó
 - "Acabou o sal" já coloca 1 sal no carrinho sem perguntar.
 
 **Ainda não feito**
-- Painel do dono.
 - Teste com pessoas de verdade, com foto e áudio delas.
 - O tempo com IA passa de 10 s em cerca de 1 a cada 4 mensagens (11 de 48 na 3ª rodada), por causa da fila do plano gratuito do Gemini. Próximo passo: avisar "um instante" depois de 3 s e comparar com um modelo pago.
 
